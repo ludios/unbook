@@ -8,4 +8,4 @@ To see your log messages, start your program with `RUST_LOG=trace` or see the [E
 
 To reduce build times, use [mold](https://github.com/rui314/mold) and build with `RUSTFLAGS="-C link-arg=--ld-path=/usr/bin/mold"`; also `export CARGO_UNSTABLE_SPARSE_REGISTRY=true` ([info](https://blog.rust-lang.org/2022/06/22/sparse-registry-testing.html))
 
-To further reduce the size of your release build, compile with Rust nightly and `RUSTFLAGS="-Z share-generics"` and `cargo build --release -Z build-std --target x86_64-unknown-linux-gnu`
+To further reduce the size of your release binary, compile with Rust nightly and `RUSTFLAGS="-Z share-generics"` and `cargo build --release -Z build-std --target x86_64-unknown-linux-gnu`

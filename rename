@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eu
+
+cratename=$1
+uppername=$2
+
+sed -i -r "s/\btemplate\b/$cratename/g" Cargo.* src/*.rs
+sed -i -r "s/\bTemplate/$uppername/g" src/*.rs
+
+rm -f LICENSE

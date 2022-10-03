@@ -1,0 +1,25 @@
+[package]
+name = "template"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4", features = ["derive"] }
+mimalloc = { version = "0.1", default-features = false } # Turn off the default secure mode
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.dev]
+# Reduce debug rebuild time
+# https://github.com/rust-gamedev/wg/issues/50#issuecomment-527160611
+debug = false
+
+# Optimize our dependencies (but not our own crate to avoid long rebuild times)
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+lto = true
+codegen-units = 1

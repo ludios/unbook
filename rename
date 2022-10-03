@@ -8,4 +8,6 @@ uppername=$2
 sed -i -r "s/\btemplate\b/$cratename/g" Cargo.* src/*.rs
 sed -i -r "s/\bTemplate/$uppername/g" src/*.rs
 
-rm -f LICENSE README.md
+rm -f rename LICENSE README.md
+
+# If you didn't like the results, `git reset --hard` and try again?

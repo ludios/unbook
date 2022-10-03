@@ -1,6 +1,3 @@
-// for #[expect(...)]
-#![feature(lint_reasons)]
-
 use clap::Parser;
 use mimalloc::MiMalloc;
 use tracing::info;

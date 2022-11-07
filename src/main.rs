@@ -8,11 +8,20 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Parser, Debug)]
 #[clap(name = "unbook", version)]
-/// unbook
-enum UnbookCommand {
-    /// Do something
-    #[clap(name = "something")]
-    Something {}
+/// Convert an ebook to a single HTML file
+struct ConvertCommand {
+    /// The path to an .epub, .mobi, .azw3 file, or other format that Calibre can
+    /// reasonably convert to HTMLZ. See https://manual.calibre-ebook.com/faq.html
+    /// for a list of formats it supports, not all of which will convert nicely to HTMLZ.
+    ebook_file: String,
+
+    /// The path for the output .html file. If not specified, it is saved in the
+    /// directory of the input file, with the ebook extension replaced with "html".
+    output_file: String,
+
+    /// Whether to replace the output .html file if it already exists.
+    #[clap(long)]
+    replace: bool,
 }
 
 fn main() {
@@ -24,10 +33,6 @@ fn main() {
         .with_env_filter(env_filter)
         .init();
 
-    let command = UnbookCommand::parse();
-    match command {
-        UnbookCommand::Something {} => {
-            info!("something");
-        }
-    }
+    let convert = ConvertCommand::parse();
+
 }

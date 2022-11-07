@@ -20,7 +20,7 @@ struct ConvertCommand {
     output_file: String,
 
     /// Whether to replace the output .html file if it already exists.
-    #[clap(long)]
+    #[clap(long, short = 'f')]
     replace: bool,
 }
 

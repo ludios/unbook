@@ -48,7 +48,33 @@ fn get_zip_content(archive: &mut ZipArchive<File>, fname: &str) -> Result<Vec<u8
     Ok(vec)
 }
 
-const UNBOOK_VERSION: &'static str = "0.1.0";
+const UNBOOK_VERSION: &str = "0.1.0";
+
+/// Filter a Calibre `ebook-convert -vv` stdout to remove the input path and output path
+fn filter_calibre_log(log: &str) -> String {
+    let mut out = String::with_capacity(log.len());
+    let mut fix_next_line = false;
+    for line in log.lines() {
+        if fix_next_line {
+            fix_next_line = false;
+            if line.starts_with("on ") {
+                out.push_str("on […]\n");
+            }
+        } else if line.starts_with("InputFormatPlugin: ") {
+            fix_next_line = true;
+            out.push_str(line);
+            out.push('\n');
+        } else if line.starts_with("HTMLZ output written to ") {
+            out.push_str("HTMLZ output written to […]\n");
+        } else if line.starts_with("Output saved to ") {
+            out.push_str("Output saved to […]\n");
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
+}
 
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
@@ -111,13 +137,11 @@ fn main() -> Result<()> {
                         }
                     ");
                     let ebook_basename = ebook_path.file_name().unwrap().to_string_lossy();
-                    let calibre_log = String::from_utf8_lossy(&calibre_output.stdout);
+                    let calibre_log = filter_calibre_log(&String::from_utf8_lossy(&calibre_output.stdout));
                     let extra_head = formatdoc!("<!--
                         \x20ebook converted to HTML with unbook
                         \x20original file: {ebook_basename}
                         \x20unbook version: {UNBOOK_VERSION}
-                        -->
-                        <!--
                         \x20calibre conversion log:
 
                         {calibre_log}

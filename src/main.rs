@@ -1,10 +1,12 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
-use std::fs;
+use std::{fs::{self, File}, io::{Write, Read}};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use anyhow::{Result, bail};
-use std::{process::{Command, Stdio}, ffi::OsString, path::PathBuf};
+use anyhow::{Result, anyhow, bail};
+use std::io;
+use std::path::Path;
+use std::{process::{Command, Stdio}, path::PathBuf};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -31,6 +33,10 @@ struct ConvertCommand {
     ebook_convert: String,
 }
 
+fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
+    fs::OpenOptions::new().read(true).write(true).create_new(true).open(path.as_ref())
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -43,7 +49,7 @@ fn main() -> Result<()> {
     let ConvertCommand { ebook_path, output_path, replace, ebook_convert } = ConvertCommand::parse();
     let output_path = match output_path {
         Some(p) => p,
-        None => ebook_path.with_extension("htmlz"),
+        None => ebook_path.with_extension("html"),
     };
     // If needed, bail out early before running ebook-convert
     if output_path.exists() && !replace {
@@ -65,11 +71,23 @@ fn main() -> Result<()> {
         Some(code) if code != 0 => { bail!("ebook-convert returned exit code {code}"); }
         Some(_) => {}
     }
-    
+
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
-    let archive = zip::ZipArchive::new(htmlz_file)?;
+    let mut archive = zip::ZipArchive::new(htmlz_file)?;
     let filenames: Vec<&str> = archive.file_names().collect();
     println!("filenames: {:#?}", filenames);
+
+    let mut html_entry = archive.by_name("index.html")?;
+
+    let mut output_file = if replace {
+        fs::File::create(&output_path)?
+    } else {
+        // TODO: use fs::File::create_new once stable
+        create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
+    };
+    let mut html = Vec::with_capacity(html_entry.size() as usize * 4);
+    html_entry.read_to_end(&mut html)?;
+    output_file.write_all(&html)?;
 
     Ok(())
 }

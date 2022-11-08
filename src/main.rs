@@ -74,6 +74,10 @@ fn filter_calibre_log(log: &str) -> String {
     out
 }
 
+fn escape_html_comment_close(s: &str) -> String {
+    s.replace("-->", r"-[this was just \x2D\x2D\3E]->")
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -134,8 +138,13 @@ fn main() -> Result<()> {
                             margin: 0 auto 0 auto;
                         }
                     ");
-                    let ebook_basename = ebook_path.file_name().unwrap().to_string_lossy();
-                    let calibre_log = filter_calibre_log(&String::from_utf8_lossy(&calibre_output.stdout));
+                    let ebook_basename =
+                        escape_html_comment_close(
+                            &ebook_path.file_name().unwrap().to_string_lossy());
+                    let calibre_log =
+                        escape_html_comment_close(
+                            &filter_calibre_log(
+                                &String::from_utf8_lossy(&calibre_output.stdout)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
                     let extra_head = formatdoc!("<!--
                         \x20ebook converted to HTML with unbook

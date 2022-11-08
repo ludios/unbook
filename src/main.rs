@@ -60,16 +60,18 @@ fn main() -> Result<()> {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
         std::env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
-    let status = Command::new(ebook_convert)
-        .stdin(Stdio::null())
-        .env_clear()
-        .args([&ebook_path, &output_htmlz])
-        .status()?;
-    let code = status.code();
-    match code {
-        None => { bail!("ebook-convert was terminated by a signal"); }
-        Some(code) if code != 0 => { bail!("ebook-convert returned exit code {code}"); }
-        Some(_) => {}
+    {
+        let status = Command::new(ebook_convert)
+            .stdin(Stdio::null())
+            .env_clear()
+            .args([&ebook_path, &output_htmlz])
+            .status()?;
+        let code = status.code();
+        match code {
+            None => { bail!("ebook-convert was terminated by a signal"); }
+            Some(code) if code != 0 => { bail!("ebook-convert returned exit code {code}"); }
+            Some(_) => {}
+        }
     }
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();

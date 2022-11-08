@@ -89,11 +89,11 @@ fn main() -> Result<()> {
 
     let mime_types = {
         let mut mime_types = HashMap::with_capacity(4);
-        mime_types.insert("gif", "image/gif");
-        mime_types.insert("jpg", "image/jpeg");
-        mime_types.insert("jpeg", "image/jpeg");
-        mime_types.insert("png", "image/png");
-        mime_types.insert("svg", "image/svg+xml");
+        mime_types.insert("gif".to_string(), "image/gif");
+        mime_types.insert("jpg".to_string(), "image/jpeg");
+        mime_types.insert("jpeg".to_string(), "image/jpeg");
+        mime_types.insert("png".to_string(), "image/png");
+        mime_types.insert("svg".to_string(), "image/svg+xml");
         mime_types
     };
 
@@ -112,7 +112,8 @@ fn main() -> Result<()> {
                     let mime_type = {
                         let (_, ext) = src.rsplit_once('.')
                             .ok_or_else(|| anyhow!("no extension for src={src}"))?;
-                        let mime_type = mime_types.get(ext)
+                        let ext = ext.to_ascii_lowercase();
+                        let mime_type = mime_types.get(&ext)
                             .ok_or_else(|| anyhow!("no mimetype for extension {ext}"))?;
                         mime_type
                     };

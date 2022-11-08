@@ -146,7 +146,8 @@ fn main() -> Result<()> {
 
                         {calibre_log}
                         -->
-                        <meta name=\"viewport\" content=\"width=device-width\">
+                        <meta name=\"viewport\" content=\"width=device-width\" />
+                        <meta name=\"referrer\" content=\"no-referrer\" />
                         <style>
                         {top_css}
 

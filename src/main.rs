@@ -1,12 +1,13 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
-use std::{fs::{self, File}, io::{Write, Read}};
+use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use anyhow::{Result, anyhow, bail};
 use std::io;
 use std::path::Path;
 use std::{process::{Command, Stdio}, path::PathBuf};
+use lol_html::{element, HtmlRewriter, Settings};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -79,7 +80,51 @@ fn main() -> Result<()> {
     let filenames: Vec<&str> = archive.file_names().collect();
     println!("filenames: {:#?}", filenames);
 
-    let mut html_entry = archive.by_name("index.html")?;
+    let html = {
+        let mut html_entry = archive.by_name("index.html")?;
+        let mut html = Vec::with_capacity(html_entry.size() as usize);
+        html_entry.read_to_end(&mut html)?;
+        html
+    };
+
+    let mime_types = {
+        let mut mime_types = HashMap::with_capacity(4);
+        mime_types.insert("gif", "image/gif");
+        mime_types.insert("jpg", "image/jpeg");
+        mime_types.insert("jpeg", "image/jpeg");
+        mime_types.insert("png", "image/png");
+        mime_types.insert("svg", "image/svg+xml");
+        mime_types
+    };
+
+    let mut output = Vec::with_capacity(html.len() * 4);
+    let mut rewriter = HtmlRewriter::new(
+        Settings {
+            element_content_handlers: vec![
+                element!("img[src]", |el| {
+                    let src = el.get_attribute("src").unwrap();
+                    let mut image_entry = archive.by_name(&src)?;
+                    let mut image = Vec::with_capacity(image_entry.size() as usize);
+                    image_entry.read_to_end(&mut image)?;
+                    let mime_type = {
+                        let (_, ext) = src.rsplit_once('.')
+                            .ok_or_else(|| anyhow!("no extension for src={src}"))?;
+                        let mime_type = mime_types.get(ext)
+                            .ok_or_else(|| anyhow!("no mimetype for extension {ext}"))?;
+                        mime_type
+                    };
+                    let image_base64 = base64::encode(image);
+                    let inline_src = format!("data:{mime_type};base64,{image_base64}");
+                    el.set_attribute("src", &inline_src)?;
+                    Ok(())
+                })
+            ],
+            ..Settings::default()
+        },
+        |c: &[u8]| output.extend_from_slice(c)
+    );
+    rewriter.write(&html)?;
+    rewriter.end()?;
 
     let mut output_file = if replace {
         fs::File::create(&output_path)?
@@ -87,9 +132,7 @@ fn main() -> Result<()> {
         // TODO: use fs::File::create_new once stable
         create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
     };
-    let mut html = Vec::with_capacity(html_entry.size() as usize * 4);
-    html_entry.read_to_end(&mut html)?;
-    output_file.write_all(&html)?;
+    output_file.write_all(&output)?;
 
     Ok(())
 }

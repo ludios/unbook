@@ -43,9 +43,8 @@ fn main() -> Result<()> {
     // TODO bail out early if `replace` false and output_path already exists
 
     let output_htmlz = {
-        let but_htmlz = ebook_path.with_extension("htmlz");
-        let htmlz_basename = but_htmlz.file_name().unwrap();
-        std::env::temp_dir().join(htmlz_basename)
+        let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
+        std::env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
     let status = Command::new(ebook_convert)
         .stdin(Stdio::null())

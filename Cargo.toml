@@ -10,6 +10,8 @@ mimalloc = { version = "0.1", default-features = false } # Turn off the default 
 log = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hex = "0.4"
+fastrand = "1.8"
 
 [profile.dev]
 # Reduce debug rebuild time

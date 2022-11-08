@@ -103,9 +103,12 @@ fn main() -> Result<()> {
             element_content_handlers: vec![
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
-                    let mut image_entry = archive.by_name(&src)?;
-                    let mut image = Vec::with_capacity(image_entry.size() as usize);
-                    image_entry.read_to_end(&mut image)?;
+                    let image = {
+                        let mut image_entry = archive.by_name(&src)?;
+                        let mut image = Vec::with_capacity(image_entry.size() as usize);
+                        image_entry.read_to_end(&mut image)?;
+                        image
+                    };
                     let mime_type = {
                         let (_, ext) = src.rsplit_once('.')
                             .ok_or_else(|| anyhow!("no extension for src={src}"))?;

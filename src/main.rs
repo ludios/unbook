@@ -1,5 +1,6 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
+use zip::ZipArchive;
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -7,7 +8,8 @@ use anyhow::{Result, anyhow, bail};
 use std::io;
 use std::path::Path;
 use std::{process::{Command, Stdio}, path::PathBuf};
-use lol_html::{element, HtmlRewriter, Settings};
+use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
+use indoc::{formatdoc, indoc};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -38,6 +40,15 @@ fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
     fs::OpenOptions::new().read(true).write(true).create_new(true).open(path.as_ref())
 }
 
+fn get_zip_content(archive: &mut ZipArchive<File>, fname: &str) -> Result<Vec<u8>> {
+    let mut entry = archive.by_name(fname)?;
+    let mut vec = Vec::with_capacity(entry.size() as usize);
+    entry.read_to_end(&mut vec)?;
+    Ok(vec)
+}
+
+const UNBOOK_VERSION: &'static str = "0.1.0";
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -65,7 +76,7 @@ fn main() -> Result<()> {
         let status = Command::new(ebook_convert)
             .stdin(Stdio::null())
             .env_clear()
-            .args([&ebook_path, &output_htmlz])
+            .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
             .status()?;
         let code = status.code();
         match code {
@@ -80,13 +91,6 @@ fn main() -> Result<()> {
     let filenames: Vec<&str> = archive.file_names().collect();
     println!("filenames: {:#?}", filenames);
 
-    let html = {
-        let mut html_entry = archive.by_name("index.html")?;
-        let mut html = Vec::with_capacity(html_entry.size() as usize);
-        html_entry.read_to_end(&mut html)?;
-        html
-    };
-
     let mime_types = {
         let mut mime_types = HashMap::with_capacity(4);
         mime_types.insert("gif".to_string(), "image/gif");
@@ -97,18 +101,39 @@ fn main() -> Result<()> {
         mime_types
     };
 
+    let html = get_zip_content(&mut archive, "index.html")?;
+    let style = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
     let mut output = Vec::with_capacity(html.len() * 4);
     let mut rewriter = HtmlRewriter::new(
         Settings {
             element_content_handlers: vec![
+                element!("head", |el| {
+                    let top_css = indoc!("
+                        body {
+                            max-width: 35em;
+                            margin: 0 auto 0 auto;
+                        }
+                    ");
+                    let ebook_basename = ebook_path.file_name().unwrap().to_string_lossy();
+                    let extra_head = formatdoc!("<!--
+                        \x20ebook converted to HTML with unbook
+                        \x20original file: {ebook_basename}
+                        \x20unbook version: {UNBOOK_VERSION}
+                        \x20calibre version: 
+                        -->
+                        <meta name=\"viewport\" content=\"width=device-width\">
+                        <style>
+                        {top_css}
+
+                        {style}
+                        </style>
+                    ", style = style);
+                    el.prepend(&extra_head, ContentType::Html);
+                    Ok(())
+                }),
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
-                    let image = {
-                        let mut image_entry = archive.by_name(&src)?;
-                        let mut image = Vec::with_capacity(image_entry.size() as usize);
-                        image_entry.read_to_end(&mut image)?;
-                        image
-                    };
+                    let image = get_zip_content(&mut archive, &src)?;
                     let mime_type = {
                         let (_, ext) = src.rsplit_once('.')
                             .ok_or_else(|| anyhow!("no extension for src={src}"))?;

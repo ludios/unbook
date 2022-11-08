@@ -1,5 +1,6 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
+use std::fs;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use anyhow::{Result, bail};
@@ -40,7 +41,14 @@ fn main() -> Result<()> {
         .init();
 
     let ConvertCommand { ebook_path, output_path, replace, ebook_convert } = ConvertCommand::parse();
-    // TODO bail out early if `replace` false and output_path already exists
+    let output_path = match output_path {
+        Some(p) => p,
+        None => ebook_path.with_extension("htmlz"),
+    };
+    // If needed, bail out early before running ebook-convert
+    if output_path.exists() && !replace {
+        bail!("{:?} already exists", output_path);
+    }
 
     let output_htmlz = {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
@@ -57,6 +65,11 @@ fn main() -> Result<()> {
         Some(code) if code != 0 => { bail!("ebook-convert returned exit code {code}"); }
         Some(_) => {}
     }
+    
+    let htmlz_file = fs::File::open(&output_htmlz).unwrap();
+    let archive = zip::ZipArchive::new(htmlz_file)?;
+    let filenames: Vec<&str> = archive.file_names().collect();
+    println!("filenames: {:#?}", filenames);
 
     Ok(())
 }

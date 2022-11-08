@@ -1,13 +1,14 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
 use zip::ZipArchive;
+use std::str;
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
-use tracing::info;
+use tracing::debug;
 use tracing_subscriber::EnvFilter;
 use anyhow::{Result, anyhow, bail};
 use std::io;
 use std::path::Path;
-use std::{process::{Command, Stdio}, path::PathBuf};
+use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use indoc::{formatdoc, indoc};
 
@@ -72,24 +73,19 @@ fn main() -> Result<()> {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
         std::env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
-    {
-        let status = Command::new(ebook_convert)
-            .stdin(Stdio::null())
-            .env_clear()
-            .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
-            .status()?;
-        let code = status.code();
-        match code {
-            None => { bail!("ebook-convert was terminated by a signal"); }
-            Some(code) if code != 0 => { bail!("ebook-convert returned exit code {code}"); }
-            Some(_) => {}
-        }
+    let calibre_output = Command::new(ebook_convert)
+        .env_clear()
+        // We need -vv for calibre to output its version
+        .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
+        .output()?;
+    if !calibre_output.stderr.is_empty() {
+        bail!("calibre had stderr output: {:#?}", calibre_output.stderr);
     }
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
     let mut archive = zip::ZipArchive::new(htmlz_file)?;
     let filenames: Vec<&str> = archive.file_names().collect();
-    println!("filenames: {:#?}", filenames);
+    debug!(filenames = ?filenames, "files inside htmlz");
 
     let mime_types = {
         let mut mime_types = HashMap::with_capacity(4);
@@ -115,11 +111,16 @@ fn main() -> Result<()> {
                         }
                     ");
                     let ebook_basename = ebook_path.file_name().unwrap().to_string_lossy();
+                    let calibre_log = String::from_utf8_lossy(&calibre_output.stdout);
                     let extra_head = formatdoc!("<!--
                         \x20ebook converted to HTML with unbook
                         \x20original file: {ebook_basename}
                         \x20unbook version: {UNBOOK_VERSION}
-                        \x20calibre version: 
+                        -->
+                        <!--
+                        \x20calibre conversion log:
+
+                        {calibre_log}
                         -->
                         <meta name=\"viewport\" content=\"width=device-width\">
                         <style>

@@ -10,6 +10,7 @@ use std::io;
 use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
+use lightningcss::stylesheet::{StyleSheet, ParserOptions, PrinterOptions};
 use indoc::formatdoc;
 
 #[global_allocator]
@@ -83,6 +84,17 @@ fn escape_html_comment_close(s: &str) -> String {
     s.replace("-->", r"-[breaking up an \x2D\x2D\3E]->")
 }
 
+fn fix_css(css: &str) -> Result<String> {
+    // Must .unwrap(), not ? here, due to a defect involving the lifetime in
+    // StyleSheet::parse's Err variant.
+    let stylesheet = StyleSheet::parse(css, ParserOptions::default()).unwrap();
+
+    let out_css = stylesheet.to_css(PrinterOptions::default())?;
+    let out_string = out_css.code;
+
+    Ok(out_string)
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -131,7 +143,7 @@ fn main() -> Result<()> {
     };
 
     let html = get_zip_content(&mut archive, "index.html")?;
-    let style = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
+    let calibre_css = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
     let mut output = Vec::with_capacity(html.len() * 4);
     let mut rewriter = HtmlRewriter::new(
         Settings {
@@ -144,6 +156,7 @@ fn main() -> Result<()> {
                             padding: 1em;
                         }}
                     ");
+                    let fixed_css = fix_css(&calibre_css)?;
                     let ebook_basename =
                         escape_html_comment_close(
                             &ebook_path.file_name().unwrap().to_string_lossy());
@@ -165,9 +178,9 @@ fn main() -> Result<()> {
                         <style>
                         {top_css}
 
-                        {style}
+                        {fixed_css}
                         </style>
-                    ", style = style);
+                    ", fixed_css = fixed_css);
                     el.prepend(&extra_head, ContentType::Html);
                     Ok(())
                 }),

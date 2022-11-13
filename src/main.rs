@@ -26,6 +26,7 @@ struct ConvertCommand {
 
     /// The path for the output .html file. If not specified, it is saved in the
     /// directory of the input file, with the ebook extension replaced with "html".
+    #[clap(long, short = 'o')]
     output_path: Option<PathBuf>,
 
     /// Whether to replace the output .html file if it already exists.

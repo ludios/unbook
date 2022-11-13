@@ -134,8 +134,9 @@ fn main() -> Result<()> {
                 element!("head", |el| {
                     let top_css = indoc!("
                         body {
-                            max-width: 35em;
-                            margin: 0 auto 0 auto;
+                            max-width: 33em;
+                            margin: 0 auto;
+                            padding: 1em;
                         }
                     ");
                     let ebook_basename =

@@ -80,7 +80,7 @@ fn filter_calibre_log(log: &str) -> String {
 }
 
 fn escape_html_comment_close(s: &str) -> String {
-    s.replace("-->", r"-[this was just \x2D\x2D\3E]->")
+    s.replace("-->", r"-[breaking up an \x2D\x2D\3E]->")
 }
 
 fn main() -> Result<()> {

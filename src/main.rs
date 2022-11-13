@@ -10,7 +10,7 @@ use std::io;
 use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
-use indoc::{formatdoc, indoc};
+use indoc::formatdoc;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -32,6 +32,10 @@ struct ConvertCommand {
     /// Whether to replace the output .html file if it already exists.
     #[clap(long, short = 'f')]
     replace: bool,
+
+    /// The max-width (with a CSS unit) the use for the book text
+    #[clap(long, default_value = "33em")]
+    max_width: String,
 
     /// Path to the Calibre "ebook-convert" executable to use
     #[clap(long, default_value = "ebook-convert")]
@@ -88,7 +92,7 @@ fn main() -> Result<()> {
         .with_env_filter(env_filter)
         .init();
 
-    let ConvertCommand { ebook_path, output_path, replace, ebook_convert } = ConvertCommand::parse();
+    let ConvertCommand { ebook_path, output_path, replace, max_width, ebook_convert } = ConvertCommand::parse();
     let output_path = match output_path {
         Some(p) => p,
         None => ebook_path.with_extension("html"),
@@ -133,12 +137,12 @@ fn main() -> Result<()> {
         Settings {
             element_content_handlers: vec![
                 element!("head", |el| {
-                    let top_css = indoc!("
-                        body {
-                            max-width: 33em;
+                    let top_css = formatdoc!("
+                        body {{
+                            max-width: {max_width};
                             margin: 0 auto;
                             padding: 1em;
-                        }
+                        }}
                     ");
                     let ebook_basename =
                         escape_html_comment_close(

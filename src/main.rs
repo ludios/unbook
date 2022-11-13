@@ -1,4 +1,7 @@
 use clap::Parser;
+use lightningcss::declaration::DeclarationBlock;
+use lightningcss::properties::Property;
+use lightningcss::properties::custom::UnparsedProperty;
 use mimalloc::MiMalloc;
 use zip::ZipArchive;
 use std::str;
@@ -11,6 +14,8 @@ use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use lightningcss::stylesheet::{StyleSheet, ParserOptions, PrinterOptions};
+use lightningcss::rules::{CssRule, style::StyleRule};
+use lightningcss::properties::font::LineHeight;
 use indoc::formatdoc;
 
 #[global_allocator]
@@ -34,9 +39,13 @@ struct ConvertCommand {
     #[clap(long, short = 'f')]
     replace: bool,
 
-    /// The max-width (with a CSS unit) the use for the book text
+    /// The max-width (with a CSS unit) to use for the book text
     #[clap(long, default_value = "33em")]
     max_width: String,
+
+    /// The minimum line-height (with an optional CSS unit) to use for the book text
+    #[clap(long, default_value = "1.5")]
+    min_line_height: String,
 
     /// Path to the Calibre "ebook-convert" executable to use
     #[clap(long, default_value = "ebook-convert")]
@@ -89,7 +98,15 @@ fn fix_css(css: &str) -> Result<String> {
     // StyleSheet::parse's Err variant.
     let stylesheet = StyleSheet::parse(css, ParserOptions::default())
         .map_err(|e| anyhow!("failed to parse CSS: {e:#?}"))?;
-    // TODO change some CSS here
+    for rule in stylesheet.rules.0.iter() {
+        if let CssRule::Style(StyleRule { declarations, .. }) = rule {
+            for declaration in &declarations.declarations {
+                if let Property::LineHeight(lh) = declaration {
+                    declaration = UnparsedProperty
+                }
+            }
+        }
+    }
     let out_css = stylesheet.to_css(PrinterOptions::default())?;
     Ok(out_css.code)
 }
@@ -103,7 +120,15 @@ fn main() -> Result<()> {
         .with_env_filter(env_filter)
         .init();
 
-    let ConvertCommand { ebook_path, output_path, replace, max_width, ebook_convert } = ConvertCommand::parse();
+    let ConvertCommand {
+        ebook_path,
+        output_path,
+        replace,
+        max_width,
+        min_line_height,
+        ebook_convert
+    } = ConvertCommand::parse();
+
     let output_path = match output_path {
         Some(p) => p,
         None => ebook_path.with_extension("html"),
@@ -149,10 +174,15 @@ fn main() -> Result<()> {
             element_content_handlers: vec![
                 element!("head", |el| {
                     let top_css = formatdoc!("
+                        :root {{
+                            --min-line-height: {min_line_height};
+                        }}
+
                         body {{
                             max-width: {max_width};
                             margin: 0 auto;
                             padding: 1em;
+                            line-height: var(--min-line-height);
                         }}
                     ");
                     let fixed_css = fix_css(&calibre_css)?;

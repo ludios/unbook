@@ -195,6 +195,9 @@ fn main() -> Result<()> {
     rewriter.write(&html)?;
     rewriter.end()?;
 
+    // We're done reading the htmlz at this point
+    fs::remove_file(&output_htmlz)?;
+
     let mut output_file = if replace {
         fs::File::create(&output_path)?
     } else {

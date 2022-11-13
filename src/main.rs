@@ -85,14 +85,13 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> Result<String> {
-    // Must .unwrap(), not ? here, due to a defect involving the lifetime in
+    // Must .map_err here, due to a defect involving the lifetime in
     // StyleSheet::parse's Err variant.
-    let stylesheet = StyleSheet::parse(css, ParserOptions::default()).unwrap();
-
+    let stylesheet = StyleSheet::parse(css, ParserOptions::default())
+        .map_err(|e| anyhow!("failed to parse CSS: {e:#?}"))?;
+    // TODO change some CSS here
     let out_css = stylesheet.to_css(PrinterOptions::default())?;
-    let out_string = out_css.code;
-
-    Ok(out_string)
+    Ok(out_css.code)
 }
 
 fn main() -> Result<()> {

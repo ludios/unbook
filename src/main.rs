@@ -112,7 +112,7 @@ fn main() -> Result<()> {
         .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
         .output()?;
     if !calibre_output.stderr.is_empty() {
-        bail!("calibre had stderr output: {:#?}", calibre_output.stderr);
+        bail!("calibre had stderr output:\n\n{}", String::from_utf8_lossy(&calibre_output.stderr));
     }
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();

@@ -1,7 +1,4 @@
 use clap::Parser;
-use lightningcss::declaration::DeclarationBlock;
-use lightningcss::properties::Property;
-use lightningcss::properties::custom::UnparsedProperty;
 use mimalloc::MiMalloc;
 use zip::ZipArchive;
 use std::str;
@@ -13,9 +10,6 @@ use std::io;
 use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
-use lightningcss::stylesheet::{StyleSheet, ParserOptions, PrinterOptions};
-use lightningcss::rules::{CssRule, style::StyleRule};
-use lightningcss::properties::font::LineHeight;
 use indoc::formatdoc;
 
 #[global_allocator]
@@ -94,21 +88,15 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> Result<String> {
-    // Must .map_err here, due to a defect involving the lifetime in
-    // StyleSheet::parse's Err variant.
-    let stylesheet = StyleSheet::parse(css, ParserOptions::default())
-        .map_err(|e| anyhow!("failed to parse CSS: {e:#?}"))?;
-    for rule in stylesheet.rules.0.iter() {
-        if let CssRule::Style(StyleRule { declarations, .. }) = rule {
-            for declaration in &declarations.declarations {
-                if let Property::LineHeight(lh) = declaration {
-                    declaration = UnparsedProperty
-                }
-            }
-        }
-    }
-    let out_css = stylesheet.to_css(PrinterOptions::default())?;
-    Ok(out_css.code)
+    // TODO regexp
+    // line-height: ([\.\d]+)
+    // ->
+    // line-height: max(\1, --min-line-height)
+    let out = String::with_capacity(css.len());
+
+    
+
+    Ok(out)
 }
 
 fn main() -> Result<()> {

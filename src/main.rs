@@ -12,6 +12,7 @@ use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use indoc::formatdoc;
 use regex::Regex;
+use roxmltree::Document;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -100,6 +101,18 @@ fn indent(text: &str) -> String {
     out
 }
 
+/// Return a `roxmltree::Document` for some XML string
+fn parse_xml(xml: &str) -> Result<Document<'_>> {
+    let doc = Document::parse(xml)
+        .map_err(|_| anyhow!("roxmltree could not parse XML: {:?}", xml))?;
+    Ok(doc)
+}
+
+fn get_cover_filename(doc: &Document<'_>) -> Option<String> {
+    let cover = doc.descendants().find(|node| node.tag_name().name() == "reference" && node.attribute("type") == Some("cover"));
+    cover.and_then(|node| node.attribute("href")).map(String::from)
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -153,6 +166,9 @@ fn main() -> Result<()> {
     };
 
     let html = get_zip_content(&mut archive, "index.html")?;
+    let metadata = String::from_utf8(get_zip_content(&mut archive, "metadata.opf")?)?;
+    let metadata_doc = parse_xml(&metadata)?;
+    dbg!(metadata_doc);
     let calibre_css = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
     let mut output = Vec::with_capacity(html.len() * 4);
     let mut rewriter = HtmlRewriter::new(
@@ -178,6 +194,10 @@ fn main() -> Result<()> {
                     let ebook_basename =
                         escape_html_comment_close(
                             &ebook_path.file_name().unwrap().to_string_lossy());
+                    let metadata_ =
+                            indent(
+                                &escape_html_comment_close(
+                                    &metadata));
                     let calibre_log =
                         indent(
                             &escape_html_comment_close(
@@ -193,6 +213,8 @@ fn main() -> Result<()> {
                         \x20ebook converted to HTML with unbook
                         \x20original file: {ebook_basename}
                         \x20unbook version: {unbook_version}
+                        \x20metadata.opf:
+                        {metadata_}
                         \x20calibre stderr output:
                         {calibre_stderr}
 

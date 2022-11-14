@@ -113,6 +113,25 @@ fn get_cover_filename(doc: &Document<'_>) -> Option<String> {
     cover.and_then(|node| node.attribute("href")).map(String::from)
 }
 
+fn get_mime_type(filename: &str) -> Result<&'static str> {
+    let mime_types = {
+        let mut mime_types = HashMap::with_capacity(4);
+        mime_types.insert("gif".to_string(), "image/gif");
+        mime_types.insert("jpg".to_string(), "image/jpeg");
+        mime_types.insert("jpeg".to_string(), "image/jpeg");
+        mime_types.insert("png".to_string(), "image/png");
+        mime_types.insert("svg".to_string(), "image/svg+xml");
+        mime_types
+    };
+
+    let (_, ext) = filename.rsplit_once('.')
+        .ok_or_else(|| anyhow!("no extension for src={filename}"))?;
+    let ext = ext.to_ascii_lowercase();
+    let mime_type = mime_types.get(&ext)
+        .ok_or_else(|| anyhow!("no mimetype for extension {ext}"))?;
+    Ok(mime_type)
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -155,21 +174,15 @@ fn main() -> Result<()> {
     let filenames: Vec<&str> = archive.file_names().collect();
     debug!(filenames = ?filenames, "files inside htmlz");
 
-    let mime_types = {
-        let mut mime_types = HashMap::with_capacity(4);
-        mime_types.insert("gif".to_string(), "image/gif");
-        mime_types.insert("jpg".to_string(), "image/jpeg");
-        mime_types.insert("jpeg".to_string(), "image/jpeg");
-        mime_types.insert("png".to_string(), "image/png");
-        mime_types.insert("svg".to_string(), "image/svg+xml");
-        mime_types
-    };
-
     let html = get_zip_content(&mut archive, "index.html")?;
+    let calibre_css = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
     let metadata = String::from_utf8(get_zip_content(&mut archive, "metadata.opf")?)?;
     let metadata_doc = parse_xml(&metadata)?;
-    dbg!(metadata_doc);
-    let calibre_css = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
+    let cover_fname = get_cover_filename(&metadata_doc);
+    let mut cover = None;
+    if let Some(cover_fname) = &cover_fname {
+        cover = Some(get_zip_content(&mut archive, cover_fname)?);
+    }
     let mut output = Vec::with_capacity(html.len() * 4);
     let mut rewriter = HtmlRewriter::new(
         Settings {
@@ -233,17 +246,21 @@ fn main() -> Result<()> {
                     el.prepend(&extra_head, ContentType::Html);
                     Ok(())
                 }),
+                element!("body", |el| {
+                    if cover_fname.is_none() {
+                        return Ok(())
+                    }
+                    let mime_type = get_mime_type(cover_fname.as_ref().unwrap())?;
+                    let image_base64 = base64::encode(cover.as_ref().unwrap());
+                    let inline_src = format!("data:{mime_type};base64,{image_base64}");
+                    let extra_body = format!("<img alt=\"Book cover\" src=\"{inline_src}\" />");
+                    el.prepend(&extra_body, ContentType::Html);
+                    Ok(())
+                }),
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
                     let image = get_zip_content(&mut archive, &src)?;
-                    let mime_type = {
-                        let (_, ext) = src.rsplit_once('.')
-                            .ok_or_else(|| anyhow!("no extension for src={src}"))?;
-                        let ext = ext.to_ascii_lowercase();
-                        let mime_type = mime_types.get(&ext)
-                            .ok_or_else(|| anyhow!("no mimetype for extension {ext}"))?;
-                        mime_type
-                    };
+                    let mime_type = get_mime_type(&src)?;
                     let image_base64 = base64::encode(image);
                     let inline_src = format!("data:{mime_type};base64,{image_base64}");
                     el.set_attribute("src", &inline_src)?;

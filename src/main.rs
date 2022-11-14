@@ -136,8 +136,6 @@ fn main() -> Result<()> {
         // We need -vv for calibre to output its version
         .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
         .output()?;
-    // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
-    let calibre_stderr = String::from_utf8_lossy(&calibre_output.stderr);
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
     let mut archive = zip::ZipArchive::new(htmlz_file)?;
@@ -181,22 +179,26 @@ fn main() -> Result<()> {
                         escape_html_comment_close(
                             &ebook_path.file_name().unwrap().to_string_lossy());
                     let calibre_log =
-                        escape_html_comment_close(
-                            &filter_calibre_log(
-                                &String::from_utf8_lossy(&calibre_output.stdout)));
+                        indent(
+                            &escape_html_comment_close(
+                                &filter_calibre_log(
+                                    &String::from_utf8_lossy(&calibre_output.stdout))));
+                    // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
+                    let calibre_stderr =
+                        indent(
+                            &escape_html_comment_close(
+                                &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
-                    let indented_stderr = indent(&calibre_stderr);
-                    let indented_log = indent(&calibre_log);
                     let extra_head = formatdoc!("<!--
                         \x20ebook converted to HTML with unbook
                         \x20original file: {ebook_basename}
                         \x20unbook version: {unbook_version}
                         \x20calibre stderr output:
-                        {indented_stderr}
+                        {calibre_stderr}
 
                         \x20calibre conversion log:
 
-                        {indented_log}
+                        {calibre_log}
                         -->
                         <meta name=\"viewport\" content=\"width=device-width\" />
                         <meta name=\"referrer\" content=\"no-referrer\" />

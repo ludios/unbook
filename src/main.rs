@@ -88,10 +88,16 @@ fn escape_html_comment_close(s: &str) -> String {
     s.replace("-->", r"-[breaking up an \x2D\x2D\3E]->")
 }
 
-fn fix_css(css: &str) -> Result<String> {
+fn fix_css(css: &str) -> String {
     let re = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+);?$").unwrap();
     let out = re.replace_all(css, "${indent}line-height: max($height, --min-line-height);").into();
-    Ok(out)
+    out
+}
+
+fn indent(text: &str) -> String {
+    let re = Regex::new(r"(?m)^").unwrap();
+    let out = re.replace_all(text, "  ").into();
+    out
 }
 
 fn main() -> Result<()> {
@@ -130,9 +136,8 @@ fn main() -> Result<()> {
         // We need -vv for calibre to output its version
         .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
         .output()?;
-    if !calibre_output.stderr.is_empty() {
-        bail!("calibre had stderr output:\n\n{}", String::from_utf8_lossy(&calibre_output.stderr));
-    }
+    // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
+    let calibre_stderr = String::from_utf8_lossy(&calibre_output.stderr);
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
     let mut archive = zip::ZipArchive::new(htmlz_file)?;
@@ -171,7 +176,7 @@ fn main() -> Result<()> {
                             word-break: break-word;
                         }}
                     ");
-                    let fixed_css = fix_css(&calibre_css)?;
+                    let fixed_css = fix_css(&calibre_css);
                     let ebook_basename =
                         escape_html_comment_close(
                             &ebook_path.file_name().unwrap().to_string_lossy());
@@ -180,13 +185,18 @@ fn main() -> Result<()> {
                             &filter_calibre_log(
                                 &String::from_utf8_lossy(&calibre_output.stdout)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
+                    let indented_stderr = indent(&calibre_stderr);
+                    let indented_log = indent(&calibre_log);
                     let extra_head = formatdoc!("<!--
                         \x20ebook converted to HTML with unbook
                         \x20original file: {ebook_basename}
                         \x20unbook version: {unbook_version}
+                        \x20calibre stderr output:
+                        {indented_stderr}
+
                         \x20calibre conversion log:
 
-                        {calibre_log}
+                        {indented_log}
                         -->
                         <meta name=\"viewport\" content=\"width=device-width\" />
                         <meta name=\"referrer\" content=\"no-referrer\" />
@@ -195,7 +205,7 @@ fn main() -> Result<()> {
 
                         {fixed_css}
                         </style>
-                    ", fixed_css = fixed_css);
+                    ");
                     el.prepend(&extra_head, ContentType::Html);
                     Ok(())
                 }),

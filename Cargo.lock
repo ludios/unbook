@@ -829,6 +829,7 @@ dependencies = [
  "log",
  "lol_html",
  "mimalloc",
+ "regex",
  "tracing",
  "tracing-subscriber",
  "zip",

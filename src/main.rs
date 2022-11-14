@@ -11,6 +11,7 @@ use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use indoc::formatdoc;
+use regex::Regex;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -88,14 +89,8 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> Result<String> {
-    // TODO regexp
-    // line-height: ([\.\d]+)
-    // ->
-    // line-height: max(\1, --min-line-height)
-    let out = String::with_capacity(css.len());
-
-    
-
+    let re = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+);?$").unwrap();
+    let out = re.replace_all(css, "${indent}line-height: max($height, --min-line-height);").into();
     Ok(out)
 }
 

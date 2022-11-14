@@ -166,6 +166,9 @@ fn main() -> Result<()> {
                             margin: 0 auto;
                             padding: 1em;
                             line-height: var(--min-line-height);
+                            /* Without word-break: break-word, iOS Safari 16.1 lets
+                             * very long words e.g. URLs widen the page */
+                            word-break: break-word;
                         }}
                     ");
                     let fixed_css = fix_css(&calibre_css)?;

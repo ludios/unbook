@@ -246,14 +246,19 @@ fn main() -> Result<()> {
                     Ok(())
                 }),
                 element!("body", |el| {
-                    if cover_fname.is_none() {
-                        return Ok(())
+                    let skip_cover = "<a id=\"unbook-skip-cover\"></a>";
+                    if let Some(cover_fname) = cover_fname.as_ref() {
+                        let mime_type = get_mime_type(cover_fname)?;
+                        let image_base64 = base64::encode(cover.as_ref().unwrap());
+                        let inline_src = format!("data:{mime_type};base64,{image_base64}");
+                        let extra_body = formatdoc!("
+                            \n<img alt=\"Book cover\" src=\"{inline_src}\" />
+                            {skip_cover}
+                        ");
+                        el.prepend(&extra_body, ContentType::Html);
+                    } else {
+                        el.prepend(skip_cover, ContentType::Html);
                     }
-                    let mime_type = get_mime_type(cover_fname.as_ref().unwrap())?;
-                    let image_base64 = base64::encode(cover.as_ref().unwrap());
-                    let inline_src = format!("data:{mime_type};base64,{image_base64}");
-                    let extra_body = format!("\n<img alt=\"Book cover\" src=\"{inline_src}\" />\n");
-                    el.prepend(&extra_body, ContentType::Html);
                     Ok(())
                 }),
                 element!("img[src]", |el| {

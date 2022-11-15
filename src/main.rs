@@ -193,6 +193,12 @@ fn main() -> Result<()> {
                             --min-line-height: {min_line_height};
                         }}
 
+                        img {{
+                            /* TODO: allow images to exceed the width of the container, but
+                             * not the viewport width, and without widening the viewport. */
+                            max-width: 100%;
+                        }}
+
                         body {{
                             max-width: {max_width};
                             margin: 0 auto;

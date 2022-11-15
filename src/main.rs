@@ -252,7 +252,7 @@ fn main() -> Result<()> {
                     let mime_type = get_mime_type(cover_fname.as_ref().unwrap())?;
                     let image_base64 = base64::encode(cover.as_ref().unwrap());
                     let inline_src = format!("data:{mime_type};base64,{image_base64}");
-                    let extra_body = format!("<img alt=\"Book cover\" src=\"{inline_src}\" />");
+                    let extra_body = format!("\n<img alt=\"Book cover\" src=\"{inline_src}\" />\n");
                     el.prepend(&extra_body, ContentType::Html);
                     Ok(())
                 }),

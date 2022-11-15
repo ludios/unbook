@@ -194,8 +194,13 @@ fn main() -> Result<()> {
                         }}
 
                         img {{
-                            /* TODO: allow images to exceed the width of the container, but
-                             * not the viewport width, and without widening the viewport. */
+                            /* We don't want to let images widen the page, especially on mobile.
+                             *
+                             * TODO: allow images to exceed the width of the container, but
+                             * not the viewport width, and without widening the viewport.
+                             * 
+                             * https://stackoverflow.com/a/41059954 does not work because it
+                             * widens the page when there is a wide image. */
                             max-width: 100%;
                         }}
 

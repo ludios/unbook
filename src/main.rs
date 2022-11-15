@@ -95,9 +95,9 @@ fn fix_css(css: &str) -> String {
     out
 }
 
-fn indent(text: &str) -> String {
+fn indent(indent: &str, text: &str) -> String {
     let re = Regex::new(r"(?m)^").unwrap();
-    let out = re.replace_all(text, "  ").into();
+    let out = re.replace_all(text, indent).into();
     out
 }
 
@@ -208,30 +208,30 @@ fn main() -> Result<()> {
                         escape_html_comment_close(
                             &ebook_path.file_name().unwrap().to_string_lossy());
                     let metadata_ =
-                            indent(
+                            indent("\t\t",
                                 &escape_html_comment_close(
                                     &metadata));
                     let calibre_log =
-                        indent(
+                        indent("\t\t",
                             &escape_html_comment_close(
                                 &filter_calibre_log(
                                     &String::from_utf8_lossy(&calibre_output.stdout))));
                     // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
                     let calibre_stderr =
-                        indent(
+                        indent("\t\t",
                             &escape_html_comment_close(
                                 &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
                     let extra_head = formatdoc!("<!--
-                         ebook converted to HTML with unbook
-                         original file: {ebook_basename}
-                         unbook version: {unbook_version}
-                         metadata.opf:
+                        \tebook converted to HTML with unbook
+                        \toriginal file: {ebook_basename}
+                        \tunbook version: {unbook_version}
+                        \tmetadata.opf:
                         {metadata_}
-                         calibre stderr output:
+                        \tcalibre stderr output:
                         {calibre_stderr}
 
-                         calibre conversion log:
+                        \tcalibre conversion log:
 
                         {calibre_log}
                         -->

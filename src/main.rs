@@ -268,6 +268,9 @@ fn main() -> Result<()> {
                     let image_base64 = base64::encode(image);
                     let inline_src = format!("data:{mime_type};base64,{image_base64}");
                     el.set_attribute("src", &inline_src)?;
+                    // Make the HTML source a little easier to read by putting inline images on their own lines
+                    el.before("<!--\n-->", ContentType::Html);
+                    el.after("<!--\n-->", ContentType::Html);
                     Ok(())
                 })
             ],

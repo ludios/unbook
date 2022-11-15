@@ -223,15 +223,15 @@ fn main() -> Result<()> {
                                 &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
                     let extra_head = formatdoc!("<!--
-                        \x20ebook converted to HTML with unbook
-                        \x20original file: {ebook_basename}
-                        \x20unbook version: {unbook_version}
-                        \x20metadata.opf:
+                         ebook converted to HTML with unbook
+                         original file: {ebook_basename}
+                         unbook version: {unbook_version}
+                         metadata.opf:
                         {metadata_}
-                        \x20calibre stderr output:
+                         calibre stderr output:
                         {calibre_stderr}
 
-                        \x20calibre conversion log:
+                         calibre conversion log:
 
                         {calibre_log}
                         -->

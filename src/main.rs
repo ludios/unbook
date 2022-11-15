@@ -223,9 +223,8 @@ fn main() -> Result<()> {
                                 &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
                     let extra_head = formatdoc!("<!--
-                        \tebook converted to HTML with unbook
+                        \tebook converted to HTML with unbook {unbook_version}
                         \toriginal file: {ebook_basename}
-                        \tunbook version: {unbook_version}
                         \tmetadata.opf:
                         {metadata_}
                         \tcalibre stderr output:

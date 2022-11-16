@@ -132,6 +132,14 @@ fn get_mime_type(filename: &str) -> Result<&'static str> {
     Ok(mime_type)
 }
 
+fn is_file_an_unbook_conversion(path: &PathBuf) -> Result<bool> {
+    let mut file = File::open(path)?;
+    let unbook_header = b"<html><head><!--\n\tebook converted to HTML with unbook ";
+    let mut buf = vec![0u8; unbook_header.len()];
+    file.read_exact(&mut buf)?;
+    Ok(buf == unbook_header)
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -157,6 +165,9 @@ fn main() -> Result<()> {
     // If needed, bail out early before running ebook-convert
     if output_path.exists() && !replace {
         bail!("{:?} already exists", output_path);
+    }
+    if is_file_an_unbook_conversion(&ebook_path)? {
+        bail!("input file {ebook_path:?} was produced by unbook, refusing to convert it");
     }
 
     let output_htmlz = {
@@ -233,6 +244,7 @@ fn main() -> Result<()> {
                             &escape_html_comment_close(
                                 &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
+                    // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
                     let extra_head = formatdoc!("<!--
                         \tebook converted to HTML with unbook {unbook_version}
                         \toriginal file: {ebook_basename}

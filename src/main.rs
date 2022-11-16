@@ -2,6 +2,7 @@ use clap::Parser;
 use mimalloc::MiMalloc;
 use zip::ZipArchive;
 use std::str;
+use std::sync::{Arc, Mutex};
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
@@ -208,6 +209,7 @@ fn main() -> Result<()> {
         cover = Some(get_zip_content(&mut archive, cover_fname)?);
     }
     let mut output = Vec::with_capacity(html.len() * 4);
+    let archive_arc = Arc::new(Mutex::new(archive));
     let mut rewriter = HtmlRewriter::new(
         Settings {
             element_content_handlers: vec![
@@ -303,6 +305,7 @@ fn main() -> Result<()> {
                 }),
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
+                    let mut archive = archive_arc.lock().unwrap();
                     let image = get_zip_content(&mut archive, &src)?;
                     let mime_type = get_mime_type(&src)?;
                     let image_base64 = base64::encode(image);
@@ -312,7 +315,18 @@ fn main() -> Result<()> {
                     el.before("<!--\n-->", ContentType::Html);
                     el.after("<!--\n-->", ContentType::Html);
                     Ok(())
-                })
+                }),
+                // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image
+                element!("image[href]", |el| {
+                    let href = el.get_attribute("href").unwrap();
+                    let mut archive = archive_arc.lock().unwrap();
+                    let image = get_zip_content(&mut archive, &href)?;
+                    let mime_type = get_mime_type(&href)?;
+                    let image_base64 = base64::encode(image);
+                    let inline_href = format!("data:{mime_type};base64,{image_base64}");
+                    el.set_attribute("href", &inline_href)?;
+                    Ok(())
+                }),
             ],
             ..Settings::default()
         },

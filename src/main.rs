@@ -90,9 +90,13 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> String {
-    let re = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
-    let out = re.replace_all(css, "${indent}line-height: max($height, var(--min-line-height));").into();
-    out
+    let line_height = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
+    let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook was here */");
+
+    let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
+    let css = text_align_justify.replace_all(&css, "${indent}/* text-align: justify; */ /* unbook was here */");
+
+    css.to_string()
 }
 
 fn indent(indent: &str, text: &str) -> String {
@@ -323,7 +327,7 @@ pub(crate) mod tests {
     use super::*;
 
     #[test]
-    fn test_fix_css() {
+    fn test_fix_css_line_height() {
         let input = "
             .something {
                 line-height: 1.2
@@ -337,12 +341,57 @@ pub(crate) mod tests {
 
         let output = "
             .something {
-                line-height: max(1.2, var(--min-line-height));
+                line-height: max(1.2, var(--min-line-height)); /* unbook was here */
             }
 
             .something-else {
-                line-height: max(1.3, var(--min-line-height));
+                line-height: max(1.3, var(--min-line-height)); /* unbook was here */
                 font-size: 14pt
+            }
+        ";
+
+        assert_eq!(fix_css(input), output);
+    }
+
+    #[test]
+    fn test_fix_css_text_align() {
+        let input = "
+            .something-1 {
+                text-align: right;
+                text-align: right
+            }
+
+            .something-2 {
+                text-align: left;
+                text-align: left
+            }
+
+            .something-3 {
+                text-align: justify
+            }
+
+            .something-4 {
+                text-align: justify;
+            }
+        ";
+
+        let output = "
+            .something-1 {
+                text-align: right;
+                text-align: right
+            }
+
+            .something-2 {
+                text-align: left;
+                text-align: left
+            }
+
+            .something-3 {
+                /* text-align: justify; */ /* unbook was here */
+            }
+
+            .something-4 {
+                /* text-align: justify; */ /* unbook was here */
             }
         ";
 

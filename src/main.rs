@@ -94,7 +94,7 @@ fn fix_css(css: &str) -> String {
     // minimum. A minimum line height aids in reading by reducing the chance
     // of regressing to an already-read line.
     let line_height = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
-    let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook was here */");
+    let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook */");
 
     // Justifying text to both the left and right edge creates uneven spacing
     // between words and impairs reading speed. It is also a lost cause on
@@ -103,7 +103,7 @@ fn fix_css(css: &str) -> String {
     // Chapter 6 'The Procrustean Bed', pp. 88-93.
     // https://monoskop.org/images/8/8d/Gill_Eric_An_Essay_on_Typography.pdf#page=94
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
-    let css = text_align_justify.replace_all(&css, "${indent}/* text-align: justify; */ /* unbook was here */");
+    let css = text_align_justify.replace_all(&css, "${indent}/* text-align: justify; */ /* unbook */");
 
     css.to_string()
 }
@@ -213,6 +213,8 @@ fn main() -> Result<()> {
             element_content_handlers: vec![
                 element!("head", |el| {
                     let top_css = formatdoc!("
+                        /* unbook */
+
                         :root {{
                             --min-line-height: {min_line_height};
                         }}
@@ -237,6 +239,8 @@ fn main() -> Result<()> {
                              * very long words e.g. URLs widen the page */
                             word-break: break-word;
                         }}
+
+                        /* calibre */
                     ");
                     let fixed_css = fix_css(&calibre_css);
                     let ebook_basename =
@@ -350,11 +354,11 @@ pub(crate) mod tests {
 
         let output = "
             .something {
-                line-height: max(1.2, var(--min-line-height)); /* unbook was here */
+                line-height: max(1.2, var(--min-line-height)); /* unbook */
             }
 
             .something-else {
-                line-height: max(1.3, var(--min-line-height)); /* unbook was here */
+                line-height: max(1.3, var(--min-line-height)); /* unbook */
                 font-size: 14pt
             }
         ";
@@ -396,11 +400,11 @@ pub(crate) mod tests {
             }
 
             .something-3 {
-                /* text-align: justify; */ /* unbook was here */
+                /* text-align: justify; */ /* unbook */
             }
 
             .something-4 {
-                /* text-align: justify; */ /* unbook was here */
+                /* text-align: justify; */ /* unbook */
             }
         ";
 

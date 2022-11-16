@@ -90,8 +90,8 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> String {
-    let re = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+);?$").unwrap();
-    let out = re.replace_all(css, "${indent}line-height: max($height, --min-line-height);").into();
+    let re = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
+    let out = re.replace_all(css, "${indent}line-height: max($height, var(--min-line-height));").into();
     out
 }
 
@@ -316,4 +316,36 @@ fn main() -> Result<()> {
     output_file.write_all(&output)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fix_css() {
+        let input = "
+            .something {
+                line-height: 1.2
+            }
+
+            .something-else {
+                line-height: 1.3;
+                font-size: 14pt
+            }
+        ";
+
+        let output = "
+            .something {
+                line-height: max(1.2, var(--min-line-height));
+            }
+
+            .something-else {
+                line-height: max(1.3, var(--min-line-height));
+                font-size: 14pt
+            }
+        ";
+
+        assert_eq!(fix_css(input), output);
+    }
 }

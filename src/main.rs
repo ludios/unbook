@@ -90,9 +90,18 @@ fn escape_html_comment_close(s: &str) -> String {
 }
 
 fn fix_css(css: &str) -> String {
+    // Replace line-height overrides so that they are not smaller that our
+    // minimum. A minimum line height aids in reading by reducing the chance
+    // of regressing to an already-read line.
     let line_height = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
     let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook was here */");
 
+    // Justifying text to both the left and right edge creates uneven spacing
+    // between words and impairs reading speed. It is also a lost cause on
+    // mobile, where the width of the screen can be very narrow. For further
+    // rationale and a demonstration, see _An Essay on Typography_,
+    // Chapter 6 'The Procrustean Bed', pp. 88-93.
+    // https://monoskop.org/images/8/8d/Gill_Eric_An_Essay_on_Typography.pdf#page=94
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
     let css = text_align_justify.replace_all(&css, "${indent}/* text-align: justify; */ /* unbook was here */");
 

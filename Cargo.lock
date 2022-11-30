@@ -835,6 +835,7 @@ dependencies = [
  "fastrand",
  "hex",
  "indoc",
+ "lazy_static",
  "log",
  "lol_html",
  "mimalloc",

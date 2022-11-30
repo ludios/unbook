@@ -17,6 +17,7 @@ use roxmltree::Document;
 use indoc::formatdoc;
 
 mod css;
+mod font;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

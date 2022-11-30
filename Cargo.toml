@@ -18,6 +18,7 @@ base64 = "0.13"
 indoc = "1"
 regex = { version = "1", default-features = false } # We don't much performance or Unicode for CSS adjustments
 roxmltree = "0.15"
+lazy_static = "1"
 
 [profile.dev]
 # Reduce debug rebuild time

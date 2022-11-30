@@ -46,6 +46,11 @@ struct ConvertCommand {
     #[clap(long, default_value = "15px")]
     base_font_size: String,
 
+    /// The minimum font-size (with a CSS unit) to use for the book text. This can be used
+    /// to work around issues with bad 'em' sizing making fonts far too small.
+    #[clap(long, default_value = "13px")]
+    min_font_size: String,
+
     /// The max-width (with a CSS unit) to use for the book text
     #[clap(long, default_value = "33em")]
     max_width: String,
@@ -159,6 +164,7 @@ fn main() -> Result<()> {
         output_path,
         replace,
         base_font_size,
+        min_font_size,
         max_width,
         min_line_height,
         ebook_convert
@@ -230,7 +236,7 @@ fn main() -> Result<()> {
                             &escape_html_comment_close(
                                 &String::from_utf8_lossy(&calibre_output.stderr)));
                     let unbook_version = env!("CARGO_PKG_VERSION");
-                    let top_css = css::top_css(&base_font_size, &max_width, &min_line_height);
+                    let top_css = css::top_css(&base_font_size, &min_font_size, &max_width, &min_line_height);
                     // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
                     let extra_head = formatdoc!("<!--
                         \tebook converted to HTML with unbook {unbook_version}

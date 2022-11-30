@@ -1,12 +1,13 @@
 use indoc::formatdoc;
 use regex::Regex;
 
-pub(crate) fn top_css(base_font_size: &str, max_width: &str, min_line_height: &str) -> String {
+pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
     formatdoc!("
         /* unbook */
 
         :root {{
             --base-font-size: {base_font_size};
+            --min-font-size: {min_font_size};
             --min-line-height: {min_line_height};
         }}
 
@@ -43,6 +44,10 @@ pub(crate) fn fix_css(css: &str) -> String {
     let line_height = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
     let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook */");
 
+    // Text that is too small either causes eye strain or becomes completely unreadable.
+    let font_size = Regex::new(r"(?m)^(?P<indent>\s*)font-size:\s*(?P<size>[^;]+?);?$").unwrap();
+    let css = font_size.replace_all(&css, "${indent}font-size: max($size, var(--min-font-size)); /* unbook */");
+
     // Justifying text to both the left and right edge creates uneven spacing
     // between words and impairs reading speed. It is also a lost cause on
     // mobile, where the width of the screen can be very narrow. For further
@@ -68,7 +73,7 @@ pub(crate) mod tests {
 
             .something-else {
                 line-height: 1.3;
-                font-size: 14pt
+                font-family: Arial
             }
         ";
 
@@ -79,7 +84,7 @@ pub(crate) mod tests {
 
             .something-else {
                 line-height: max(1.3, var(--min-line-height)); /* unbook */
-                font-size: 14pt
+                font-family: Arial
             }
         ";
 
@@ -125,6 +130,31 @@ pub(crate) mod tests {
 
             .something-4 {
                 /* text-align: justify; */ /* unbook */
+            }
+        ";
+
+        assert_eq!(fix_css(input), output);
+    }
+
+    #[test]
+    fn test_fix_font_size() {
+        let input = "
+            .something {
+                font-size: 12px
+            }
+
+            .something-else {
+                font-size: 14pt;
+            }
+        ";
+
+        let output = "
+            .something {
+                font-size: max(12px, var(--min-font-size)); /* unbook */
+            }
+
+            .something-else {
+                font-size: max(14pt, var(--min-font-size)); /* unbook */
             }
         ";
 

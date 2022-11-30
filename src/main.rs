@@ -1,6 +1,7 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
 use zip::ZipArchive;
+use std::os::unix::prelude::MetadataExt;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
@@ -171,6 +172,11 @@ fn main() -> Result<()> {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
         std::env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
+    let ebook_file_size = {
+        let ebook_file = fs::File::open(&ebook_path)?;
+        let metadata = File::metadata(&ebook_file)?;
+        metadata.size()
+    };
     let calibre_output = Command::new(ebook_convert)
         .env_clear()
         // We need -vv for calibre to output its version
@@ -220,7 +226,8 @@ fn main() -> Result<()> {
                     // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
                     let extra_head = formatdoc!("<!--
                         \tebook converted to HTML with unbook {unbook_version}
-                        \toriginal file: {ebook_basename}
+                        \toriginal file name: {ebook_basename}
+                        \toriginal file size: {ebook_file_size}
                         \tmetadata.opf:
                         {metadata_}
                         \tcalibre stderr output:

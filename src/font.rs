@@ -37,6 +37,8 @@ lazy_static! {
             "URW Gothic L",
             "Optima",
             "Arial Narrow",
+            "Roboto",
+            "Segoe UI",
             "sans-serif",
             "system-ui",
             "-apple-system",

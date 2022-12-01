@@ -13,13 +13,22 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
 
         img {{
             /* We don't want to let images widen the page, especially on mobile.
-            *
-            * TODO: allow images to exceed the width of the container, but
-            * not the viewport width, and without widening the viewport.
-            * 
-            * https://stackoverflow.com/a/41059954 does not work because it
-            * widens the page when there is a wide image. */
+             *
+             * TODO: allow images to exceed the width of the container, but
+             * not the viewport width, and without widening the viewport.
+             * 
+             * https://stackoverflow.com/a/41059954 does not work because it
+             * widens the page when there is a wide image. */
             max-width: 100%;
+
+            /* Some books have an explicit `width: ...px` and `height: ...px` on each image,
+             * but we don't want the `height` to apply when we're max-width constrained because
+             * that will incorrectly stretch the image.
+             * 
+             * TODO: only `auto` when we think the image isn't intentionally being made larger
+             * or smaller. */
+            height: auto !important;
+            width: auto !important;
         }}
 
         body {{
@@ -29,7 +38,7 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
             font-size: var(--base-font-size);
             line-height: var(--min-line-height);
             /* Without word-break: break-word, iOS Safari 16.1 lets
-            * very long words e.g. URLs widen the page */
+             * very long words e.g. URLs widen the page */
             word-break: break-word;
         }}
 

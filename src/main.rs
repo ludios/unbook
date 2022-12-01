@@ -1,6 +1,6 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
-use zip::ZipArchive;
+use std::collections::HashSet;
 use std::os::unix::prelude::MetadataExt;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,7 @@ use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
 use anyhow::{Result, anyhow, bail};
-use std::io;
+use std::io::{self, Seek};
 use std::path::Path;
 use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
@@ -67,13 +67,6 @@ struct ConvertCommand {
 
 fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
     fs::OpenOptions::new().read(true).write(true).create_new(true).open(path.as_ref())
-}
-
-fn get_zip_content(archive: &mut ZipArchive<File>, fname: &str) -> Result<Vec<u8>> {
-    let mut entry = archive.by_name(fname)?;
-    let mut vec = Vec::with_capacity(entry.size() as usize);
-    entry.read_to_end(&mut vec)?;
-    Ok(vec)
 }
 
 /// Filter a Calibre `ebook-convert -vv` stdout to remove the input path and output path
@@ -151,6 +144,30 @@ fn is_file_an_unbook_conversion(path: &PathBuf) -> Result<bool> {
     Ok(buf == unbook_header)
 }
 
+#[derive(Debug)]
+struct ZipReadTracker<R> {
+    archive: zip::ZipArchive<R>,
+    unread_files: HashSet<String>,
+}
+
+impl<R: Read + Seek> ZipReadTracker<R> {
+    fn new(archive: zip::ZipArchive<R>) -> Self {
+        let unread_files: HashSet<String> = archive.file_names().map(String::from).collect();
+        ZipReadTracker {
+            archive,
+            unread_files
+        }
+    }
+
+    fn get_content(&mut self, fname: &str) -> Result<Vec<u8>> {
+        let mut entry = self.archive.by_name(fname)?;
+        let mut vec = Vec::with_capacity(entry.size() as usize);
+        entry.read_to_end(&mut vec)?;
+        self.unread_files.remove(fname);
+        Ok(vec)
+    }
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -199,21 +216,22 @@ fn main() -> Result<()> {
         .output()?;
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
-    let mut archive = zip::ZipArchive::new(htmlz_file)?;
+    let archive = zip::ZipArchive::new(htmlz_file)?;
     let filenames: Vec<&str> = archive.file_names().collect();
     debug!(filenames = ?filenames, "files inside htmlz");
+    let mut zip = ZipReadTracker::new(archive);
 
-    let html = get_zip_content(&mut archive, "index.html")?;
-    let calibre_css = String::from_utf8(get_zip_content(&mut archive, "style.css")?)?;
-    let metadata = String::from_utf8(get_zip_content(&mut archive, "metadata.opf")?)?;
+    let html = zip.get_content("index.html")?;
+    let calibre_css = String::from_utf8(zip.get_content("style.css")?)?;
+    let metadata = String::from_utf8(zip.get_content("metadata.opf")?)?;
     let metadata_doc = parse_xml(&metadata)?;
     let cover_fname = get_cover_filename(&metadata_doc);
     let mut cover = None;
     if let Some(cover_fname) = &cover_fname {
-        cover = Some(get_zip_content(&mut archive, cover_fname)?);
+        cover = Some(zip.get_content(cover_fname)?);
     }
     let mut output = Vec::with_capacity(html.len() * 4);
-    let archive_arc = Arc::new(Mutex::new(archive));
+    let zip_arc = Arc::new(Mutex::new(zip));
     let mut rewriter = HtmlRewriter::new(
         Settings {
             element_content_handlers: vec![
@@ -281,8 +299,8 @@ fn main() -> Result<()> {
                 }),
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
-                    let mut archive = archive_arc.lock().unwrap();
-                    let image = get_zip_content(&mut archive, &src)?;
+                    let mut zip = zip_arc.lock().unwrap();
+                    let image = zip.get_content(&src)?;
                     let mime_type = get_mime_type(&src)?;
                     let image_base64 = base64::encode(image);
                     let inline_src = format!("data:{mime_type};base64,{image_base64}");
@@ -295,8 +313,8 @@ fn main() -> Result<()> {
                 // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image
                 element!("image[href]", |el| {
                     let href = el.get_attribute("href").unwrap();
-                    let mut archive = archive_arc.lock().unwrap();
-                    let image = get_zip_content(&mut archive, &href)?;
+                    let mut zip = zip_arc.lock().unwrap();
+                    let image = zip.get_content(&href)?;
                     let mime_type = get_mime_type(&href)?;
                     let image_base64 = base64::encode(image);
                     let inline_href = format!("data:{mime_type};base64,{image_base64}");

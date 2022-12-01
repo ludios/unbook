@@ -222,6 +222,9 @@ fn main() -> Result<()> {
     let mut zip = ZipReadTracker::new(archive);
 
     let html = zip.get_content("index.html")?;
+    if !html.starts_with(b"<html><head>") {
+        bail!("index.html in {output_htmlz:?} does not start with <html><head>");
+    }
     let calibre_css = String::from_utf8(zip.get_content("style.css")?)?;
     let metadata = String::from_utf8(zip.get_content("metadata.opf")?)?;
     let metadata_doc = parse_xml(&metadata)?;
@@ -235,52 +238,6 @@ fn main() -> Result<()> {
     let mut rewriter = HtmlRewriter::new(
         Settings {
             element_content_handlers: vec![
-                element!("head", |el| {
-                    let fixed_css = css::fix_css(&calibre_css);
-                    let ebook_basename =
-                        escape_html_comment_close(
-                            &ebook_path.file_name().unwrap().to_string_lossy());
-                    let metadata_ =
-                            indent("\t\t",
-                                &escape_html_comment_close(
-                                    &metadata));
-                    let calibre_log =
-                        indent("\t\t",
-                            &escape_html_comment_close(
-                                &filter_calibre_log(
-                                    &String::from_utf8_lossy(&calibre_output.stdout))));
-                    // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
-                    let calibre_stderr =
-                        indent("\t\t",
-                            &escape_html_comment_close(
-                                &String::from_utf8_lossy(&calibre_output.stderr)));
-                    let unbook_version = env!("CARGO_PKG_VERSION");
-                    let top_css = css::top_css(&base_font_size, &min_font_size, &max_width, &min_line_height);
-                    // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
-                    let extra_head = formatdoc!("<!--
-                        \tebook converted to HTML with unbook {unbook_version}
-                        \toriginal file name: {ebook_basename}
-                        \toriginal file size: {ebook_file_size}
-                        \tmetadata.opf:
-                        {metadata_}
-                        \tcalibre stderr output:
-                        {calibre_stderr}
-
-                        \tcalibre conversion log:
-
-                        {calibre_log}
-                        -->
-                        <meta name=\"viewport\" content=\"width=device-width\" />
-                        <meta name=\"referrer\" content=\"no-referrer\" />
-                        <style>
-                        {top_css}
-
-                        {fixed_css}
-                        </style>
-                    ");
-                    el.prepend(&extra_head, ContentType::Html);
-                    Ok(())
-                }),
                 element!("body", |el| {
                     let skip_cover = "<a id=\"unbook-skip-cover\"></a>";
                     if let Some(cover_fname) = cover_fname.as_ref() {
@@ -332,13 +289,63 @@ fn main() -> Result<()> {
     // We're done reading the htmlz at this point
     fs::remove_file(&output_htmlz)?;
 
+    // We do this outside and after lol-html because our <!-- header --> needs to contain
+    // a list of files which were not read from the ZIP archive.
+    let extra_head = {
+        let fixed_css = css::fix_css(&calibre_css);
+        let ebook_basename =
+            escape_html_comment_close(
+                &ebook_path.file_name().unwrap().to_string_lossy());
+        let metadata_ =
+                indent("\t\t",
+                    &escape_html_comment_close(
+                        &metadata));
+        let calibre_log =
+            indent("\t\t",
+                &escape_html_comment_close(
+                    &filter_calibre_log(
+                        &String::from_utf8_lossy(&calibre_output.stdout))));
+        // TODO: make sure we're not putting e.g. full file paths into the HTML via some stray stderr message
+        let calibre_stderr =
+            indent("\t\t",
+                &escape_html_comment_close(
+                    &String::from_utf8_lossy(&calibre_output.stderr)));
+        let unbook_version = env!("CARGO_PKG_VERSION");
+        let top_css = css::top_css(&base_font_size, &min_font_size, &max_width, &min_line_height);
+        // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
+        formatdoc!("<!--
+            \tebook converted to HTML with unbook {unbook_version}
+            \toriginal file name: {ebook_basename}
+            \toriginal file size: {ebook_file_size}
+            \tmetadata.opf:
+            {metadata_}
+            \tcalibre stderr output:
+            {calibre_stderr}
+
+            \tcalibre conversion log:
+
+            {calibre_log}
+            -->
+            <meta name=\"viewport\" content=\"width=device-width\" />
+            <meta name=\"referrer\" content=\"no-referrer\" />
+            <style>
+            {top_css}
+
+            {fixed_css}
+            </style>
+        ")
+    };
+
     let mut output_file = if replace {
         fs::File::create(&output_path)?
     } else {
         // TODO: use fs::File::create_new once stable
         create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
     };
-    output_file.write_all(&output)?;
+    output_file.write_all(b"<html><head>")?;
+    output_file.write_all(extra_head.as_bytes())?;
+    // 12.. to skip over <html><head>
+    output_file.write_all(&output[12..])?;
 
     Ok(())
 }

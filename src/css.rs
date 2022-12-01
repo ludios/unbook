@@ -1,13 +1,14 @@
 use indoc::formatdoc;
 use regex::Regex;
 
-pub(crate) fn top_css(base_font_size: &str, base_font_family: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
+pub(crate) fn top_css(base_font_size: &str, base_font_family: &str, monospace_font_family: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
     formatdoc!("
         /* unbook */
 
         :root {{
             --base-font-size: {base_font_size};
             --base-font-family: {base_font_family};
+            --monospace-font-family: {monospace_font_family};
             --min-font-size: {min_font_size};
             --min-line-height: {min_line_height};
         }}

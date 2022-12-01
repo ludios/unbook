@@ -54,6 +54,10 @@ struct ConvertCommand {
     #[clap(long, default_value = "system-ui, sans-serif")]
     base_font_family: String,
 
+    /// The monospace font-family to use
+    #[clap(long, default_value = "monospace")]
+    monospace_font_family: String,
+
     /// The minimum font-size (with a CSS unit) to use for the book text. This can be used
     /// to work around issues with bad 'em' sizing making fonts far too small.
     #[clap(long, default_value = "13px")]
@@ -198,6 +202,7 @@ fn main() -> Result<()> {
         replace,
         base_font_size,
         base_font_family,
+        monospace_font_family,
         min_font_size,
         max_width,
         min_line_height,
@@ -330,7 +335,14 @@ fn main() -> Result<()> {
                 &escape_html_comment_close(
                     &String::from_utf8_lossy(&calibre_output.stderr)));
         let unbook_version = env!("CARGO_PKG_VERSION");
-        let top_css = css::top_css(&base_font_size, &base_font_family, &min_font_size, &max_width, &min_line_height);
+        let top_css = css::top_css(
+            &base_font_size,
+            &base_font_family,
+            &monospace_font_family,
+            &min_font_size,
+            &max_width,
+            &min_line_height,
+        );
         let (unread_files_count, unread_files_text) = {
             let zip = zip_arc.lock().unwrap();
             let mut unread_files: Vec<String> = zip.unread_files.iter().cloned().collect();

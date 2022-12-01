@@ -1,12 +1,13 @@
 use indoc::formatdoc;
 use regex::Regex;
 
-pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
+pub(crate) fn top_css(base_font_size: &str, base_font_family: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
     formatdoc!("
         /* unbook */
 
         :root {{
             --base-font-size: {base_font_size};
+            --base-font-family: {base_font_family};
             --min-font-size: {min_font_size};
             --min-line-height: {min_line_height};
         }}
@@ -24,6 +25,8 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
              */
             -webkit-text-size-adjust: none;
             text-size-adjust: none;
+
+            font-family: var(--base-font-family);
 
             /* Without word-break: break-word, iOS Safari 16.1 lets
              * very long words e.g. URLs widen the page */

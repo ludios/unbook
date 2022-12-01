@@ -24,6 +24,7 @@ lazy_static! {
     // Based on https://www.w3.org/Style/Examples/007/fonts.en.html
     // but with additional fonts added.
     //
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/font-family
     // https://en.wikipedia.org/wiki/List_of_typefaces_included_with_Microsoft_Windows
 
     static ref LOWER_FACE_TO_GENERIC_FAMILY: HashMap<String, GenericFontFamily> = {
@@ -42,6 +43,7 @@ lazy_static! {
             "Roboto",
             "Segoe UI",
             "sans-serif",
+            "ui-sans-serif",
             "system-ui",
             "-apple-system",
             "BlinkMacSystemFont",
@@ -60,6 +62,7 @@ lazy_static! {
             "TeX Gyre Schola",
             "American Typewriter",
             "serif",
+            "ui-serif",
         ];
     
         let monospace = vec![
@@ -72,6 +75,7 @@ lazy_static! {
             "Consolas",
             "Lucida Console",
             "monospace",
+            "ui-monospace",
         ];
     
         let cursive = vec![

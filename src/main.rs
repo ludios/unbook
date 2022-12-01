@@ -146,13 +146,17 @@ fn is_file_an_unbook_conversion(path: &PathBuf) -> Result<bool> {
 
 #[derive(Debug)]
 struct ZipReadTracker<R> {
-    archive: zip::ZipArchive<R>,
-    unread_files: HashSet<String>,
+    pub archive: zip::ZipArchive<R>,
+    pub unread_files: HashSet<String>,
 }
 
 impl<R: Read + Seek> ZipReadTracker<R> {
     fn new(archive: zip::ZipArchive<R>) -> Self {
-        let unread_files: HashSet<String> = archive.file_names().map(String::from).collect();
+        let unread_files: HashSet<String> = archive
+            .file_names()
+            .filter(|name| !(name.ends_with('/') || name.ends_with('\\')))
+            .map(String::from)
+            .collect();
         ZipReadTracker {
             archive,
             unread_files
@@ -312,18 +316,33 @@ fn main() -> Result<()> {
                     &String::from_utf8_lossy(&calibre_output.stderr)));
         let unbook_version = env!("CARGO_PKG_VERSION");
         let top_css = css::top_css(&base_font_size, &min_font_size, &max_width, &min_line_height);
+        let (unread_files_count, unread_files_text) = {
+            let zip = zip_arc.lock().unwrap();
+            let mut unread_files: Vec<String> = zip.unread_files.iter().cloned().collect();
+            unread_files.sort();
+            (
+                unread_files.len(),
+                indent("\t\t", &escape_html_comment_close(&unread_files.join("\n")))
+            )
+        };
         // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
+
             \toriginal file name: {ebook_basename}
             \toriginal file size: {ebook_file_size}
+
             \tmetadata.opf:
             {metadata_}
+            \tThe number of HTMLZ files which were not embedded in this HTML: {unread_files_count}
+            \tNote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
+            \tThe list of dropped files:
+            {unread_files_text}
+
             \tcalibre stderr output:
             {calibre_stderr}
 
             \tcalibre conversion log:
-
             {calibre_log}
             -->
             <meta name=\"viewport\" content=\"width=device-width\" />

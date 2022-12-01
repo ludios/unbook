@@ -74,6 +74,7 @@ lazy_static! {
             "DejaVu Sans Mono",
             "Consolas",
             "Lucida Console",
+            "UbuntuMono",
             "monospace",
             "ui-monospace",
         ];

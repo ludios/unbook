@@ -23,6 +23,8 @@ enum GenericFontFamily {
 lazy_static! {
     // Based on https://www.w3.org/Style/Examples/007/fonts.en.html
     // but with additional fonts added.
+    //
+    // https://en.wikipedia.org/wiki/List_of_typefaces_included_with_Microsoft_Windows
 
     static ref LOWER_FACE_TO_GENERIC_FAMILY: HashMap<String, GenericFontFamily> = {
         let sans_serif = vec![
@@ -68,6 +70,7 @@ lazy_static! {
             "OCR A Std",
             "DejaVu Sans Mono",
             "Consolas",
+            "Lucida Console",
             "monospace",
         ];
     

@@ -11,6 +11,25 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
             --min-line-height: {min_line_height};
         }}
 
+        body {{
+            max-width: {max_width};
+            margin: 0 auto;
+            padding: 1em;
+
+            line-height: var(--min-line-height);
+
+            font-size: var(--base-font-size);
+            /* Don't let iOS Safari enlarge the font size when the phone is in landscape mode.
+             * https://kilianvalkhof.com/2022/css-html/your-css-reset-needs-text-size-adjust-probably/
+             */
+            -webkit-text-size-adjust: none;
+            text-size-adjust: none;
+
+            /* Without word-break: break-word, iOS Safari 16.1 lets
+             * very long words e.g. URLs widen the page */
+            word-break: break-word;
+        }}
+
         img {{
             /* We don't want to let images widen the page, especially on mobile.
              *
@@ -34,25 +53,6 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
              * and we can make these look a little less terrible by vertical-aligning them to the
              * middle instead of the bottom. */
             vertical-align: middle;
-        }}
-
-        body {{
-            max-width: {max_width};
-            margin: 0 auto;
-            padding: 1em;
-
-            line-height: var(--min-line-height);
-
-            font-size: var(--base-font-size);
-            /* Don't let iOS Safari enlarge the font size when the phone is in landscape mode.
-             * https://kilianvalkhof.com/2022/css-html/your-css-reset-needs-text-size-adjust-probably/
-             */
-            -webkit-text-size-adjust: none;
-            text-size-adjust: none;
-
-            /* Without word-break: break-word, iOS Safari 16.1 lets
-             * very long words e.g. URLs widen the page */
-            word-break: break-word;
         }}
 
         /* calibre */

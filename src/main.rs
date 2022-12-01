@@ -341,9 +341,9 @@ fn main() -> Result<()> {
 
             \tmetadata.opf:
             {metadata_}
-            \tThe number of HTMLZ files which were not embedded in this HTML: {unread_files_count}
-            \tNote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
-            \tThe list of dropped files:
+            \tnumber of HTMLZ files which were not embedded in this HTML: {unread_files_count}
+            \tnote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
+            \tlist of dropped files:
             {unread_files_text}
 
             \tcalibre stderr output:

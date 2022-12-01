@@ -35,8 +35,16 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
             max-width: {max_width};
             margin: 0 auto;
             padding: 1em;
-            font-size: var(--base-font-size);
+
             line-height: var(--min-line-height);
+
+            font-size: var(--base-font-size);
+            /* Don't let iOS Safari enlarge the font size when the phone is in landscape mode.
+             * https://kilianvalkhof.com/2022/css-html/your-css-reset-needs-text-size-adjust-probably/
+             */
+            -webkit-text-size-adjust: none;
+            text-size-adjust: none;
+
             /* Without word-break: break-word, iOS Safari 16.1 lets
              * very long words e.g. URLs widen the page */
             word-break: break-word;

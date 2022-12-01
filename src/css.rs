@@ -29,6 +29,11 @@ pub(crate) fn top_css(base_font_size: &str, min_font_size: &str, max_width: &str
              * or smaller. */
             height: auto !important;
             width: auto !important;
+
+            /* Some books have images for e.g. mathematical formulas in the middle of a paragraph,
+             * and we can make these look a little less terrible by vertical-aligning them to the
+             * middle instead of the bottom. */
+            vertical-align: middle;
         }}
 
         body {{

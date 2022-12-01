@@ -63,6 +63,10 @@ struct ConvertCommand {
     /// Path to the Calibre "ebook-convert" executable to use
     #[clap(long, default_value = "ebook-convert")]
     ebook_convert: String,
+
+    /// Whether to keep the temporary HTMLZ for debugging purposes
+    #[clap(long)]
+    keep_temporary_htmlz: bool,
 }
 
 fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
@@ -189,7 +193,8 @@ fn main() -> Result<()> {
         min_font_size,
         max_width,
         min_line_height,
-        ebook_convert
+        ebook_convert,
+        keep_temporary_htmlz,
     } = ConvertCommand::parse();
 
     let output_path = match output_path {
@@ -291,7 +296,9 @@ fn main() -> Result<()> {
     rewriter.end()?;
 
     // We're done reading the htmlz at this point
-    fs::remove_file(&output_htmlz)?;
+    if !keep_temporary_htmlz {
+        fs::remove_file(&output_htmlz)?;
+    }
 
     // We do this outside and after lol-html because our <!-- header --> needs to contain
     // a list of files which were not read from the ZIP archive.

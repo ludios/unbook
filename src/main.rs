@@ -352,6 +352,7 @@ fn main() -> Result<()> {
                 indent("\t\t", &escape_html_comment_close(&unread_files.join("\n")))
             )
         };
+        let text_fragments_js = include_str!("text-fragments-polyfill.js");
         // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
@@ -379,6 +380,10 @@ fn main() -> Result<()> {
 
             {fixed_css}
             </style>
+
+            <script type=\"module\">
+            {text_fragments_js}
+            </script>
         ")
     };
 

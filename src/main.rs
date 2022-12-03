@@ -38,7 +38,7 @@ struct ConvertCommand {
 
     /// Whether to replace the output .html file if it already exists.
     #[clap(long, short = 'f')]
-    replace: bool,
+    force: bool,
 
     /// The base font-size (with a CSS unit) to use for the book text
     //
@@ -199,7 +199,7 @@ fn main() -> Result<()> {
     let ConvertCommand {
         ebook_path,
         output_path,
-        replace,
+        force,
         base_font_size,
         base_font_family,
         monospace_font_family,
@@ -215,7 +215,7 @@ fn main() -> Result<()> {
         None => ebook_path.with_extension("html"),
     };
     // If needed, bail out early before running ebook-convert
-    if output_path.exists() && !replace {
+    if output_path.exists() && !force {
         bail!("{:?} already exists", output_path);
     }
     if is_file_an_unbook_conversion(&ebook_path)? {
@@ -387,7 +387,7 @@ fn main() -> Result<()> {
         ")
     };
 
-    let mut output_file = if replace {
+    let mut output_file = if force {
         fs::File::create(&output_path)?
     } else {
         // TODO: use fs::File::create_new once stable

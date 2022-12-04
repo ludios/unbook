@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use mimalloc::MiMalloc;
 use std::collections::HashSet;
 use std::os::unix::prelude::MetadataExt;
@@ -21,6 +21,14 @@ mod font;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
+
+#[derive(ValueEnum, Clone, Debug)]
+#[allow(non_camel_case_types)]
+enum TextFragmentsPolyfill {
+    none,
+    inline,
+    unpkg,
+}
 
 #[derive(Parser, Debug)]
 #[clap(name = "unbook", version)]
@@ -78,6 +86,11 @@ struct ConvertCommand {
     /// Whether to keep the temporary HTMLZ for debugging purposes
     #[clap(long)]
     keep_temporary_htmlz: bool,
+
+    /// Which type of Text Fragments polyfill to add (if any) for the benefit
+    /// of Firefox and Safari < 16.1 users
+    #[clap(long, default_value = "inline")]
+    text_fragments_polyfill: TextFragmentsPolyfill,
 }
 
 fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
@@ -208,6 +221,7 @@ fn main() -> Result<()> {
         min_line_height,
         ebook_convert,
         keep_temporary_htmlz,
+        text_fragments_polyfill,
     } = ConvertCommand::parse();
 
     let output_path = match output_path {
@@ -353,6 +367,23 @@ fn main() -> Result<()> {
             )
         };
         let text_fragments_js = include_str!("text-fragments-polyfill.js");
+        let text_fragments_polyfill = match text_fragments_polyfill {
+            TextFragmentsPolyfill::none => String::new(),
+            TextFragmentsPolyfill::inline => formatdoc!("
+
+                <script type=\"module\">
+                {text_fragments_js}
+                </script>
+            "),
+            TextFragmentsPolyfill::unpkg => formatdoc!("
+
+                <script type=\"module\">
+                if (!('fragmentDirective' in Location.prototype) && !('fragmentDirective' in document)) {{
+                    import('https://unpkg.com/text-fragments-polyfill');
+                }}
+                </script>
+            "),
+        };
         // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
@@ -380,10 +411,7 @@ fn main() -> Result<()> {
 
             {fixed_css}
             </style>
-
-            <script type=\"module\">
-            {text_fragments_js}
-            </script>
+            {text_fragments_polyfill}
         ")
     };
 

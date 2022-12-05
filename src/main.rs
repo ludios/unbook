@@ -66,6 +66,19 @@ struct ConvertCommand {
     #[clap(long, default_value = "monospace")]
     monospace_font_family: String,
 
+    /// Whether to replace `font-family` for all font stacks indicating serif or sans-serif
+    /// fonts, with the base font family. The default "if-one" does this only when there is
+    /// just one distinct font stack. This performs the font replacement only when there is
+    /// no chance that distinct fonts are used to indicate something in the book.
+    #[clap(long, default_value = "if-one")]
+    replace_serif_and_sans_serif: css::FontFamilyReplacementMode,
+
+    /// Whether to replace `font-family` for all font stacks indicating monospace fonts,
+    /// with the monospace font family. The default "if-one" does this only when there is
+    /// just one distinct font stack.
+    #[clap(long, default_value = "if-one")]
+    replace_monospace: css::FontFamilyReplacementMode,
+
     /// The minimum font-size (with a CSS unit) to use for the book text. This can be used
     /// to work around issues with bad 'em' sizing making fonts far too small.
     #[clap(long, default_value = "13px")]
@@ -216,6 +229,8 @@ fn main() -> Result<()> {
         base_font_size,
         base_font_family,
         monospace_font_family,
+        replace_serif_and_sans_serif,
+        replace_monospace,
         min_font_size,
         max_width,
         min_line_height,
@@ -327,10 +342,20 @@ fn main() -> Result<()> {
         fs::remove_file(&output_htmlz)?;
     }
 
+    let fro = css::FontReplacementOptions {
+        min_font_size,
+        base_font_size,
+        base_font_family,
+        monospace_font_family,
+        replace_serif_and_sans_serif,
+        replace_monospace,
+    };
+
     // We do this outside and after lol-html because our <!-- header --> needs to contain
     // a list of files which were not read from the ZIP archive.
     let extra_head = {
-        let fixed_css = css::fix_css(&calibre_css);
+        let family_map = css::get_generic_font_family_map(&calibre_css);
+        let fixed_css = css::fix_css(&calibre_css, &fro, &family_map);
         let ebook_basename =
             escape_html_comment_close(
                 &ebook_path.file_name().unwrap().to_string_lossy());
@@ -350,10 +375,7 @@ fn main() -> Result<()> {
                     &String::from_utf8_lossy(&calibre_output.stderr)));
         let unbook_version = env!("CARGO_PKG_VERSION");
         let top_css = css::top_css(
-            &base_font_size,
-            &base_font_family,
-            &monospace_font_family,
-            &min_font_size,
+            &fro,
             &max_width,
             &min_line_height,
         );

@@ -1,12 +1,40 @@
+use std::collections::{HashMap, HashSet};
+
+use clap::ValueEnum;
 use indoc::formatdoc;
 use regex::Regex;
+use crate::font::{classify_font_family, GenericFontFamily};
 
-pub(crate) fn get_all_font_family(css: &str) -> Vec<String> {
+#[derive(ValueEnum, Copy, Clone, Debug)]
+#[allow(non_camel_case_types)]
+pub(crate) enum FontFamilyReplacementMode {
+    never,
+    if_one,
+    always,
+}
+
+pub(crate) struct FontReplacementOptions {
+    pub min_font_size: String,
+    pub base_font_size: String,
+    pub base_font_family: String,
+    pub monospace_font_family: String,
+    pub replace_serif_and_sans_serif: FontFamilyReplacementMode,
+    pub replace_monospace: FontFamilyReplacementMode,
+}
+
+pub(crate) fn get_all_font_stacks(css: &str) -> Vec<String> {
     let font_family = Regex::new(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$").unwrap();
     font_family.captures_iter(css).map(|m| m["stack"].to_string()).collect()
 }
 
-pub(crate) fn top_css(base_font_size: &str, base_font_family: &str, monospace_font_family: &str, min_font_size: &str, max_width: &str, min_line_height: &str) -> String {
+pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_height: &str) -> String {
+    let FontReplacementOptions {
+        min_font_size,
+        base_font_size,
+        base_font_family,
+        monospace_font_family,
+        ..
+    } = fro;
     formatdoc!("
         /* unbook */
 
@@ -68,7 +96,26 @@ pub(crate) fn top_css(base_font_size: &str, base_font_family: &str, monospace_fo
     ")
 }
 
-pub(crate) fn fix_css(css: &str) -> String {
+type GenericFamilyMap = HashMap<Option<GenericFontFamily>, HashSet<String>>;
+
+pub(crate) fn get_generic_font_family_map(css: &str) -> GenericFamilyMap {
+    let font_stacks = get_all_font_stacks(&css);
+    let mut family_map: HashMap<Option<GenericFontFamily>, HashSet<String>> = HashMap::with_capacity(6);
+    for stack in font_stacks {
+        let generic_family = classify_font_family(&stack);
+        family_map.entry(generic_family).or_insert_with(HashSet::new).insert(stack);
+    }
+    family_map
+}
+
+pub(crate) fn make_combined_regex(items: &[String]) -> String {
+    let escaped_items: Vec<String> = items.iter().map(|item| regex::escape(&item)).collect();
+    let joined = escaped_items.join("|");
+    let re = format!("({joined})");
+    re
+}
+
+pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
     // Replace line-height overrides so that they are not smaller that our
     // minimum. A minimum line height aids in reading by reducing the chance
     // of regressing to an already-read line.
@@ -86,7 +133,40 @@ pub(crate) fn fix_css(css: &str) -> String {
     // Chapter 6 'The Procrustean Bed', pp. 88-93.
     // https://monoskop.org/images/8/8d/Gill_Eric_An_Essay_on_Typography.pdf#page=94
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
-    let css = text_align_justify.replace_all(&css, "${indent}/* text-align: justify; */ /* unbook */");
+    let css = text_align_justify.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
+
+    // Replace serif and sans-serif font faces according to the user's preferences.
+    let css = match fro.replace_serif_and_sans_serif {
+        FontFamilyReplacementMode::never => css,
+        FontFamilyReplacementMode::if_one => {
+            let empty = &HashSet::new();
+            let serif = family_map.get(&Some(GenericFontFamily::Serif)).unwrap_or(empty);
+            let sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
+            let mut both: HashSet<&String> = serif.union(sans_serif).collect();
+            if both.len() == 1 {
+                let only = both.drain().next().unwrap();
+                let only_re = regex::escape(only);
+                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*{only_re};?$")).unwrap();
+                font_family.replace_all(&css, format!("${{indent}}font-family: var(--base-font-family); /* was font-family: {only_re} */ /* unbook */"))
+            } else {
+                css
+            }
+        }
+        FontFamilyReplacementMode::always => {
+            let empty = &HashSet::new();
+            let serif = family_map.get(&Some(GenericFontFamily::Serif)).unwrap_or(empty);
+            let sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
+            let both: HashSet<&String> = serif.union(sans_serif).collect();
+            if !both.is_empty() {
+                let stacks: Vec<String> = both.into_iter().cloned().collect();
+                let re = make_combined_regex(&stacks);
+                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
+                font_family.replace_all(&css, "${indent}font-family: var(--base-font-family); /* was font-family: ${stack} */ /* unbook */")
+            } else {
+                css
+            }
+        }
+    };
 
     css.to_string()
 }
@@ -96,7 +176,7 @@ pub(crate) mod tests {
     use super::*;
 
     #[test]
-    fn test_get_all_font_family() {
+    fn test_get_all_font_stacks() {
         let input = "
             .something {
                 font-family: Verdana, sans-serif
@@ -117,7 +197,7 @@ pub(crate) mod tests {
             "Arial",
         ];
 
-        assert_eq!(get_all_font_family(input), expected);
+        assert_eq!(get_all_font_stacks(input), expected);
     }
 
     #[test]
@@ -144,7 +224,16 @@ pub(crate) mod tests {
             }
         ";
 
-        assert_eq!(fix_css(input), output);
+        let fro = FontReplacementOptions {
+            min_font_size: "".to_string(),
+            base_font_size: "".to_string(),
+            base_font_family: "".to_string(),
+            monospace_font_family: "".to_string(),
+            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
+            replace_monospace: FontFamilyReplacementMode::never,
+        };
+
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
     }
 
     #[test]
@@ -189,7 +278,16 @@ pub(crate) mod tests {
             }
         ";
 
-        assert_eq!(fix_css(input), output);
+        let fro = FontReplacementOptions {
+            min_font_size: "".to_string(),
+            base_font_size: "".to_string(),
+            base_font_family: "".to_string(),
+            monospace_font_family: "".to_string(),
+            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
+            replace_monospace: FontFamilyReplacementMode::never,
+        };
+
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
     }
 
     #[test]
@@ -214,6 +312,16 @@ pub(crate) mod tests {
             }
         ";
 
-        assert_eq!(fix_css(input), output);
+        let fro = FontReplacementOptions {
+            min_font_size: "".to_string(),
+            base_font_size: "".to_string(),
+            base_font_family: "".to_string(),
+            monospace_font_family: "".to_string(),
+            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
+            replace_monospace: FontFamilyReplacementMode::never,
+        };
+
+
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
     }
 }

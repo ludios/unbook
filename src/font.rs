@@ -11,8 +11,8 @@ fn parse_font_family_list(value: &str) -> Vec<String> {
     list.map(|f| f.trim_matches(trim).to_string()).collect()
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-enum GenericFontFamily {
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum GenericFontFamily {
     Serif,
     SansSerif,
     Monospace,
@@ -122,7 +122,7 @@ lazy_static! {
 
 // Books don't always have a generic font family at the end of a `font-family` list,
 // so we need to be able to classify all the web safe fonts.
-fn classify_font_family(css_value: &str) -> Option<GenericFontFamily> {
+pub(crate) fn classify_font_family(css_value: &str) -> Option<GenericFontFamily> {
     let fonts = parse_font_family_list(&css_value.to_lowercase());
     for font in fonts {
         if let Some(generic) = LOWER_FACE_TO_GENERIC_FAMILY.get(&font) {

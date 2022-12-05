@@ -59,7 +59,7 @@ struct ConvertCommand {
     //
     // Many books have no font-family in the CSS at all, and we want to use something better
     // than the default font chosen by iOS Safari (Times).
-    #[clap(long, default_value = "system-ui, sans-serif")]
+    #[clap(long, default_value = "sans-serif")]
     base_font_family: String,
 
     /// The monospace font-family to use

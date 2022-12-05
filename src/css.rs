@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, borrow::Cow};
 
 use clap::ValueEnum;
 use indoc::formatdoc;
@@ -108,11 +108,17 @@ pub(crate) fn get_generic_font_family_map(css: &str) -> GenericFamilyMap {
     family_map
 }
 
-pub(crate) fn make_combined_regex(items: &[String]) -> String {
+fn make_combined_regex(items: &[&str]) -> String {
     let escaped_items: Vec<String> = items.iter().map(|item| regex::escape(item)).collect();
     let joined = escaped_items.join("|");
     let re = format!("({joined})");
     re
+}
+
+fn replace_font_stocks<'a>(css: &'a str, stacks: &[&str], replacement: &str) -> Cow<'a, str> {
+    let re = make_combined_regex(stacks);
+    let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
+    font_family.replace_all(css, &format!("${{indent}}font-family: {replacement}; /* was font-family: ${{stack}} */ /* unbook */"))
 }
 
 pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
@@ -145,9 +151,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let mut both: HashSet<&String> = serif.union(sans_serif).collect();
             if both.len() == 1 {
                 let only = both.drain().next().unwrap();
-                let only_re = regex::escape(only);
-                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*{only_re};?$")).unwrap();
-                font_family.replace_all(&css, format!("${{indent}}font-family: var(--base-font-family); /* was font-family: {only_re} */ /* unbook */"))
+                replace_font_stocks(&css, &[only], "var(--base-font-family)")
             } else {
                 css
             }
@@ -156,12 +160,10 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let empty = &HashSet::new();
             let serif = family_map.get(&Some(GenericFontFamily::Serif)).unwrap_or(empty);
             let sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
-            let both: HashSet<&String> = serif.union(sans_serif).collect();
+            let mut both: HashSet<&String> = serif.union(sans_serif).collect();
             if !both.is_empty() {
-                let stacks: Vec<String> = both.into_iter().cloned().collect();
-                let re = make_combined_regex(&stacks);
-                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
-                font_family.replace_all(&css, "${indent}font-family: var(--base-font-family); /* was font-family: ${stack} */ /* unbook */")
+                let stacks: Vec<&str> = both.drain().map(String::as_str).collect();
+                replace_font_stocks(&css, &stacks, "var(--base-font-family)")
             } else {
                 css
             }
@@ -176,9 +178,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let mut monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty).clone();
             if monospace.len() == 1 {
                 let only = monospace.drain().next().unwrap();
-                let only_re = regex::escape(&only);
-                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*{only_re};?$")).unwrap();
-                font_family.replace_all(&css, format!("${{indent}}font-family: var(--monospace-font-family); /* was font-family: {only_re} */ /* unbook */"))
+                replace_font_stocks(&css, &[&only], "var(--monospace-font-family)")
             } else {
                 css
             }
@@ -187,10 +187,8 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let empty = &HashSet::new();
             let monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty);
             if !monospace.is_empty() {
-                let stacks: Vec<String> = monospace.iter().cloned().collect();
-                let re = make_combined_regex(&stacks);
-                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
-                font_family.replace_all(&css, "${indent}font-family: var(--monospace-font-family); /* was font-family: ${stack} */ /* unbook */")
+                let stacks: Vec<&str> = monospace.iter().map(String::as_str).collect();
+                replace_font_stocks(&css, &stacks, "var(--monospace-font-family)")
             } else {
                 css
             }

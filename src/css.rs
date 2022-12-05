@@ -397,8 +397,10 @@ pub(crate) mod tests {
 
         let input = input_with_one_font_family();
         let mut fro = dummy_fro();
-        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        for mode in [FontFamilyReplacementMode::if_one, FontFamilyReplacementMode::always] {
+            fro.replace_serif_and_sans_serif = mode;
+            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        }
     }
 
     #[test]
@@ -429,8 +431,10 @@ pub(crate) mod tests {
 
         let input = input_with_one_font_family();
         let mut fro = dummy_fro();
-        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
-        fro.replace_monospace = FontFamilyReplacementMode::if_one;
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        for mode in [FontFamilyReplacementMode::if_one, FontFamilyReplacementMode::always] {
+            fro.replace_serif_and_sans_serif = mode;
+            fro.replace_monospace = mode;
+            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        }
     }
 }

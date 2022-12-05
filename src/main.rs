@@ -14,7 +14,7 @@ use std::{process::Command, path::PathBuf};
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use regex::Regex;
 use roxmltree::Document;
-use indoc::formatdoc;
+use indoc::{indoc, formatdoc};
 
 mod css;
 mod font;
@@ -412,6 +412,18 @@ fn main() -> Result<()> {
                 </script>
             "),
         };
+        // Don't let the book reference any external scripts, images, or other resources
+        let csp = indoc!(r#"
+            <meta http-equiv="Content-Security-Policy" content="
+                default-src 'none';
+                font-src 'self' data:;
+                img-src 'self' data:;
+                style-src 'unsafe-inline';
+                media-src 'self' data:;
+                script-src 'unsafe-inline' data:;
+                object-src 'self' data:;
+            ">"#
+        );
         // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
@@ -432,6 +444,7 @@ fn main() -> Result<()> {
             \tcalibre conversion log:
             {calibre_log}
             -->
+            {csp}
             <meta name=\"viewport\" content=\"width=device-width\" />
             <meta name=\"referrer\" content=\"no-referrer\" />
             <style>

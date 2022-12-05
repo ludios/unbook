@@ -230,6 +230,17 @@ pub(crate) mod tests {
         assert_eq!(get_all_font_stacks(input), expected);
     }
 
+    fn dummy_fro() -> FontReplacementOptions {
+        FontReplacementOptions {
+            min_font_size: "".to_string(),
+            base_font_size: "".to_string(),
+            base_font_family: "".to_string(),
+            monospace_font_family: "".to_string(),
+            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
+            replace_monospace: FontFamilyReplacementMode::never,
+        }
+    }
+
     #[test]
     fn test_fix_css_line_height() {
         let input = "
@@ -254,16 +265,7 @@ pub(crate) mod tests {
             }
         ";
 
-        let fro = FontReplacementOptions {
-            min_font_size: "".to_string(),
-            base_font_size: "".to_string(),
-            base_font_family: "".to_string(),
-            monospace_font_family: "".to_string(),
-            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
-            replace_monospace: FontFamilyReplacementMode::never,
-        };
-
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 
     #[test]
@@ -308,16 +310,7 @@ pub(crate) mod tests {
             }
         ";
 
-        let fro = FontReplacementOptions {
-            min_font_size: "".to_string(),
-            base_font_size: "".to_string(),
-            base_font_family: "".to_string(),
-            monospace_font_family: "".to_string(),
-            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
-            replace_monospace: FontFamilyReplacementMode::never,
-        };
-
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 
     #[test]
@@ -342,16 +335,6 @@ pub(crate) mod tests {
             }
         ";
 
-        let fro = FontReplacementOptions {
-            min_font_size: "".to_string(),
-            base_font_size: "".to_string(),
-            base_font_family: "".to_string(),
-            monospace_font_family: "".to_string(),
-            replace_serif_and_sans_serif: FontFamilyReplacementMode::never,
-            replace_monospace: FontFamilyReplacementMode::never,
-        };
-
-
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 }

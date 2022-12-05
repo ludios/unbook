@@ -299,11 +299,11 @@ pub(crate) mod tests {
             }
 
             .something-3 {
-                /* text-align: justify; */ /* unbook */
+                /* was text-align: justify; */ /* unbook */
             }
 
             .something-4 {
-                /* text-align: justify; */ /* unbook */
+                /* was text-align: justify; */ /* unbook */
             }
         ";
 

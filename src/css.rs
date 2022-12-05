@@ -355,6 +355,23 @@ pub(crate) mod tests {
         "
     }
 
+    fn input_with_distinct_font_families() -> &'static str {
+        "
+            .something {
+                font-family: Verdana, sans-serif
+            }
+            .something-else {
+                font-family: Times, serif;
+            }
+            pre {
+                font-family: Courier, monospace
+            }
+            code {
+                font-family: Consolas, monospace;
+            }
+        "
+    }
+
     #[test]
     fn test_fix_font_family_never() {
         let input = input_with_one_font_family();
@@ -362,7 +379,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_fix_font_family_base() {
+    fn test_fix_font_family_if_one_base() {
         let output = "
             .something {
                 font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
@@ -382,6 +399,15 @@ pub(crate) mod tests {
         let mut fro = dummy_fro();
         fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
         assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+    }
+
+    #[test]
+    fn test_fix_font_family_if_one_base_distinct() {
+        let input = input_with_distinct_font_families();
+        let mut fro = dummy_fro();
+        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
+        fro.replace_monospace = FontFamilyReplacementMode::if_one;
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), input);
     }
 
     #[test]

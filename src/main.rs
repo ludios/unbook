@@ -330,6 +330,11 @@ fn main() -> Result<()> {
                     el.set_attribute("href", &inline_href)?;
                     Ok(())
                 }),
+                // Delete reference to style.css
+                element!(r#"link[href="style.css"][rel="stylesheet"][type="text/css"]"#, |el| {
+                    el.remove();
+                    Ok(())
+                }),
             ],
             ..Settings::default()
         },

@@ -437,4 +437,28 @@ pub(crate) mod tests {
             assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
         }
     }
+
+    #[test]
+    fn test_fix_font_family_always() {
+        let output = "
+            .something {
+                font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
+            }
+            .something-else {
+                font-family: var(--base-font-family); /* was font-family: Times, serif */ /* unbook */
+            }
+            pre {
+                font-family: var(--monospace-font-family); /* was font-family: Courier, monospace */ /* unbook */
+            }
+            code {
+                font-family: var(--monospace-font-family); /* was font-family: Consolas, monospace */ /* unbook */
+            }
+        ";
+
+        let input = input_with_distinct_font_families();
+        let mut fro = dummy_fro();
+        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::always;
+        fro.replace_monospace = FontFamilyReplacementMode::always;
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+    }
 }

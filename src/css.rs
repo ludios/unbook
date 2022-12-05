@@ -141,7 +141,10 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
     let css = text_align_justify.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
 
-    // Replace serif and sans-serif font faces according to the user's preferences.
+    // Replace serif and sans-serif typefaces according to the user's preferences.
+    // Authors and publishers sometimes want an ebook to use a certain typeface, but
+    // the user's familiarity with their default sans-serif font (or other chosen
+    // replacement) should override this, because it enables them to read faster.
     let css = match fro.replace_serif_and_sans_serif {
         FontFamilyReplacementMode::never => css,
         FontFamilyReplacementMode::if_one => {

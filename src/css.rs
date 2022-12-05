@@ -337,4 +337,74 @@ pub(crate) mod tests {
 
         assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
+
+    fn input_with_one_font_family() -> &'static str {
+        "
+            .something {
+                font-family: Verdana, sans-serif
+            }
+            .something-else {
+                font-family: Verdana, sans-serif;
+            }
+            pre {
+                font-family: Courier, monospace
+            }
+            code {
+                font-family: Courier, monospace;
+            }
+        "
+    }
+
+    #[test]
+    fn test_fix_font_family_never() {
+        let input = input_with_one_font_family();
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), input);
+    }
+
+    #[test]
+    fn test_fix_font_family_base() {
+        let output = "
+            .something {
+                font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
+            }
+            .something-else {
+                font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
+            }
+            pre {
+                font-family: Courier, monospace
+            }
+            code {
+                font-family: Courier, monospace;
+            }
+        ";
+
+        let input = input_with_one_font_family();
+        let mut fro = dummy_fro();
+        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+    }
+
+    #[test]
+    fn test_fix_font_family_both() {
+        let output = "
+            .something {
+                font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
+            }
+            .something-else {
+                font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
+            }
+            pre {
+                font-family: var(--monospace-font-family); /* was font-family: Courier, monospace */ /* unbook */
+            }
+            code {
+                font-family: var(--monospace-font-family); /* was font-family: Courier, monospace */ /* unbook */
+            }
+        ";
+
+        let input = input_with_one_font_family();
+        let mut fro = dummy_fro();
+        fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
+        fro.replace_monospace = FontFamilyReplacementMode::if_one;
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+    }
 }

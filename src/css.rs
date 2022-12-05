@@ -99,7 +99,7 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
 type GenericFamilyMap = HashMap<Option<GenericFontFamily>, HashSet<String>>;
 
 pub(crate) fn get_generic_font_family_map(css: &str) -> GenericFamilyMap {
-    let font_stacks = get_all_font_stacks(&css);
+    let font_stacks = get_all_font_stacks(css);
     let mut family_map: HashMap<Option<GenericFontFamily>, HashSet<String>> = HashMap::with_capacity(6);
     for stack in font_stacks {
         let generic_family = classify_font_family(&stack);
@@ -109,7 +109,7 @@ pub(crate) fn get_generic_font_family_map(css: &str) -> GenericFamilyMap {
 }
 
 pub(crate) fn make_combined_regex(items: &[String]) -> String {
-    let escaped_items: Vec<String> = items.iter().map(|item| regex::escape(&item)).collect();
+    let escaped_items: Vec<String> = items.iter().map(|item| regex::escape(item)).collect();
     let joined = escaped_items.join("|");
     let re = format!("({joined})");
     re

@@ -168,6 +168,35 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
         }
     };
 
+    // Replace monospace font faces according to the user's preferences.
+    let css = match fro.replace_monospace {
+        FontFamilyReplacementMode::never => css,
+        FontFamilyReplacementMode::if_one => {
+            let empty = &HashSet::new();
+            let mut monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty).clone();
+            if monospace.len() == 1 {
+                let only = monospace.drain().next().unwrap();
+                let only_re = regex::escape(&only);
+                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*{only_re};?$")).unwrap();
+                font_family.replace_all(&css, format!("${{indent}}font-family: var(--monospace-font-family); /* was font-family: {only_re} */ /* unbook */"))
+            } else {
+                css
+            }
+        }
+        FontFamilyReplacementMode::always => {
+            let empty = &HashSet::new();
+            let monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty);
+            if !monospace.is_empty() {
+                let stacks: Vec<String> = monospace.iter().cloned().collect();
+                let re = make_combined_regex(&stacks);
+                let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
+                font_family.replace_all(&css, "${indent}font-family: var(--monospace-font-family); /* was font-family: ${stack} */ /* unbook */")
+            } else {
+                css
+            }
+        }
+    };
+
     css.to_string()
 }
 

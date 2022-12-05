@@ -86,6 +86,11 @@ pub(crate) fn fix_css(css: &str) -> String {
     css.to_string()
 }
 
+pub(crate) fn get_all_font_family(css: &str) -> Vec<String> {
+    let font_family = Regex::new(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$").unwrap();
+    font_family.captures_iter(css).map(|m| m["stack"].to_string()).collect()
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -185,5 +190,30 @@ pub(crate) mod tests {
         ";
 
         assert_eq!(fix_css(input), output);
+    }
+
+    #[test]
+    fn test_get_all_font_family() {
+        let input = "
+            .something {
+                font-family: Verdana, sans-serif
+                font-family:Verdana;
+                font-size: 20px;
+            }
+
+            .something-else {
+            font-family: system-ui;
+            font-family: Arial;
+            }
+        ";
+
+        let expected = vec![
+            "Verdana, sans-serif",
+            "Verdana",
+            "system-ui",
+            "Arial",
+        ];
+
+        assert_eq!(get_all_font_family(input), expected);
     }
 }

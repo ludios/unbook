@@ -289,6 +289,7 @@ fn main() -> Result<()> {
     let mut rewriter = HtmlRewriter::new(
         Settings {
             element_content_handlers: vec![
+                // Prepend the book cover image to the body
                 element!("body", |el| {
                     let skip_cover = "<a id=\"unbook-skip-cover\"></a>";
                     if let Some(cover_fname) = cover_fname.as_ref() {

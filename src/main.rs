@@ -250,6 +250,15 @@ fn main() -> Result<()> {
     if is_file_an_unbook_conversion(&ebook_path)? {
         bail!("input file {ebook_path:?} was produced by unbook, refusing to convert it");
     }
+    let first_4k = {
+        let mut buf = [0; 4096];
+        let mut ebook_file = fs::File::open(&ebook_path)?;
+        _ = ebook_file.read(&mut buf)?;
+        buf
+    };
+    if infer::archive::is_pdf(&first_4k) {
+        bail!("input file {ebook_path:?} is a PDF, refusing to create a poor HTML conversion");
+    }
 
     let output_htmlz = {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();

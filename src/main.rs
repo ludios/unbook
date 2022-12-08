@@ -15,6 +15,7 @@ use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use regex::Regex;
 use roxmltree::Document;
 use indoc::{indoc, formatdoc};
+use mobi::Mobi;
 
 mod css;
 mod font;
@@ -177,14 +178,6 @@ fn get_mime_type(filename: &str) -> Result<&'static str> {
     Ok(mime_type)
 }
 
-fn is_file_an_unbook_conversion(path: &PathBuf) -> Result<bool> {
-    let mut file = File::open(path)?;
-    let unbook_header = b"<html><head><!--\n\tebook converted to HTML with unbook ";
-    let mut buf = vec![0u8; unbook_header.len()];
-    file.read_exact(&mut buf)?;
-    Ok(buf == unbook_header)
-}
-
 #[derive(Debug)]
 struct ZipReadTracker<R> {
     pub archive: zip::ZipArchive<R>,
@@ -247,17 +240,26 @@ fn main() -> Result<()> {
     if output_path.exists() && !force {
         bail!("{:?} already exists", output_path);
     }
-    if is_file_an_unbook_conversion(&ebook_path)? {
-        bail!("input file {ebook_path:?} was produced by unbook, refusing to convert it");
-    }
     let first_4k = {
         let mut buf = [0; 4096];
         let mut ebook_file = fs::File::open(&ebook_path)?;
         _ = ebook_file.read(&mut buf)?;
         buf
     };
+    if first_4k.starts_with(b"<html><head><!--\n\tebook converted to HTML with unbook ") {
+        bail!("input file {ebook_path:?} was produced by unbook, refusing to convert it");
+    }
     if infer::archive::is_pdf(&first_4k) {
         bail!("input file {ebook_path:?} is a PDF, refusing to create a poor HTML conversion");
+    }
+    if infer::book::is_mobi(&first_4k) {
+        let mobi = Mobi::from_path(&ebook_path)?;
+        for record in mobi.raw_records() {
+            if record.content.starts_with(b"%MOP") {
+                bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
+                       possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+            }
+        }
     }
 
     let output_htmlz = {
@@ -433,7 +435,7 @@ fn main() -> Result<()> {
                 object-src 'self' data:;
             ">"#
         );
-        // If you change the header: YOU MUST ALSO UPDATE is_file_an_unbook_conversion
+        // If you change the header: YOU MUST ALSO UPDATE first_4k.starts_with above
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
 

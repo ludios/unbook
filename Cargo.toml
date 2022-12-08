@@ -19,7 +19,8 @@ indoc = "1"
 regex = { version = "1", default-features = false } # We don't much performance or Unicode for CSS adjustments
 roxmltree = "0.15"
 lazy_static = "1"
-infer = { version = "0.3", default-features = false }
+infer = { version = "0.11", default-features = false }
+mobi = "0.7"
 
 [profile.dev]
 # Reduce debug rebuild time

@@ -253,11 +253,13 @@ fn main() -> Result<()> {
         bail!("input file {ebook_path:?} is a PDF, refusing to create a poor HTML conversion");
     }
     if infer::book::is_mobi(&first_4k) {
-        let mobi = Mobi::from_path(&ebook_path)?;
-        for record in mobi.raw_records() {
-            if record.content.starts_with(b"%MOP") {
-                bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
-                       possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+        // mobi-rs might not be able to parse every MOBI; just skip the AZW4 check if it fails
+        if let Ok(mobi) = Mobi::from_path(&ebook_path) {
+            for record in mobi.raw_records() {
+                if record.content.starts_with(b"%MOP") {
+                    bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
+                        possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+                }
             }
         }
     }

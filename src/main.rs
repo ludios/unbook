@@ -45,6 +45,11 @@ struct ConvertCommand {
     #[clap(long, short = 'o')]
     output_path: Option<PathBuf>,
 
+    /// Whether to keep the ebook extension and just append ".html" instead.
+    /// Useful if you have e.g. both .mobi and .epub with the same name in a directory.
+    #[clap(long, short = 'k')]
+    keep_ebook_ext: bool,
+
     /// Whether to replace the output .html file if it already exists.
     #[clap(long, short = 'f')]
     force: bool,
@@ -218,6 +223,7 @@ fn main() -> Result<()> {
     let ConvertCommand {
         ebook_path,
         output_path,
+        keep_ebook_ext,
         force,
         base_font_size,
         base_font_family,
@@ -234,7 +240,15 @@ fn main() -> Result<()> {
 
     let output_path = match output_path {
         Some(p) => p,
-        None => ebook_path.with_extension("html"),
+        None => {
+            if keep_ebook_ext {
+                let mut filename = ebook_path.clone().into_os_string();
+                filename.push(".html");
+                ebook_path.with_file_name(filename)
+            } else {
+                ebook_path.with_extension("html")
+            }
+        }
     };
     // If needed, bail out early before running ebook-convert
     if output_path.exists() && !force {

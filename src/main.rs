@@ -462,10 +462,11 @@ fn main() -> Result<()> {
         // TODO: use fs::File::create_new once stable
         create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
     };
-    output_file.write_all(b"<html><head>")?;
+    let html_head = b"<html><head>";
+    output_file.write_all(html_head)?;
     output_file.write_all(extra_head.as_bytes())?;
-    // 12.. to skip over <html><head>
-    output_file.write_all(&output[12..])?;
+    // Skip over <html><head>
+    output_file.write_all(&output[html_head.len()..])?;
 
     Ok(())
 }

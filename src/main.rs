@@ -492,7 +492,7 @@ fn main() -> Result<()> {
     let html_head = b"<html><head>";
     output_file.write_all(html_head)?;
     output_file.write_all(extra_head.as_bytes())?;
-    // Skip over <html><head>
+    assert!(output.starts_with(html_head));
     output_file.write_all(&output[html_head.len()..])?;
 
     Ok(())

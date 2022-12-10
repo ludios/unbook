@@ -514,8 +514,7 @@ dependencies = [
 [[package]]
 name = "mobi"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dedd3957822e962f97c02b3d1b9bee98662c94549410f45e1683243a3fc148ec"
+source = "git+https://github.com/vv9k/mobi-rs#a651b00ac4692ab3879df8bea830c26b58e946fb"
 dependencies = [
  "encoding",
  "indexmap",

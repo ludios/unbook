@@ -423,6 +423,7 @@ fn main() -> Result<()> {
             indent("\t\t",
                 &escape_html_comment_close(
                     &String::from_utf8_lossy(&calibre_output.stderr)));
+        let calibre_stderr_line_count = calibre_stderr.lines().count();
         let unbook_version = env!("CARGO_PKG_VERSION");
         let top_css = css::top_css(
             &fro,
@@ -519,7 +520,7 @@ fn main() -> Result<()> {
             \t\tcursive (count: {font_stacks_cursive_count}):
             {font_stacks_cursive_text}
 
-            \tcalibre stderr output:
+            \tcalibre stderr output (lines: {calibre_stderr_line_count}):
             {calibre_stderr}
 
             \tcalibre conversion log:

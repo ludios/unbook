@@ -469,22 +469,22 @@ fn main() -> Result<()> {
         let empty = &HashSet::new();
 
         let font_stacks_unknown    = family_map.get(&None).unwrap_or(empty);
-        let font_stacks_sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
         let font_stacks_serif      = family_map.get(&Some(GenericFontFamily::Serif)).unwrap_or(empty);
+        let font_stacks_sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
         let font_stacks_monospace  = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty);
         let font_stacks_fantasy    = family_map.get(&Some(GenericFontFamily::Fantasy)).unwrap_or(empty);
         let font_stacks_cursive    = family_map.get(&Some(GenericFontFamily::Cursive)).unwrap_or(empty);
 
         let font_stacks_unknown_count    = font_stacks_unknown.len();
-        let font_stacks_sans_serif_count = font_stacks_sans_serif.len();
         let font_stacks_serif_count      = font_stacks_serif.len();
+        let font_stacks_sans_serif_count = font_stacks_sans_serif.len();
         let font_stacks_monospace_count  = font_stacks_monospace.len();
         let font_stacks_fantasy_count    = font_stacks_fantasy.len();
         let font_stacks_cursive_count    = font_stacks_cursive.len();
 
         let font_stacks_unknown_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_unknown, "\n")));
-        let font_stacks_sans_serif_text = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_sans_serif, "\n")));
         let font_stacks_serif_text      = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_serif, "\n")));
+        let font_stacks_sans_serif_text = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_sans_serif, "\n")));
         let font_stacks_monospace_text  = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_monospace, "\n")));
         let font_stacks_fantasy_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_fantasy, "\n")));
         let font_stacks_cursive_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_cursive, "\n")));
@@ -505,10 +505,10 @@ fn main() -> Result<()> {
             \tfont stacks:
             \t\tunknown (count: {font_stacks_unknown_count}):
             {font_stacks_unknown_text}
-            \t\tsans-serif (count: {font_stacks_sans_serif_count}):
-            {font_stacks_sans_serif_text}
             \t\tserif (count: {font_stacks_serif_count}):
             {font_stacks_serif_text}
+            \t\tsans-serif (count: {font_stacks_sans_serif_count}):
+            {font_stacks_sans_serif_text}
             \t\tmonospace (count: {font_stacks_monospace_count}):
             {font_stacks_monospace_text}
             \t\tfantasy (count: {font_stacks_fantasy_count}):

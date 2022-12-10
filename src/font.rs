@@ -27,7 +27,53 @@ lazy_static! {
     // https://developer.mozilla.org/en-US/docs/Web/CSS/font-family
     // https://en.wikipedia.org/wiki/List_of_typefaces_included_with_Microsoft_Windows
 
-    static ref LOWER_FACE_TO_GENERIC_FAMILY: HashMap<String, GenericFontFamily> = {
+    static ref LOWER_FACE_TO_GENERIC_FAMILY: HashMap<String, GenericFontFamily> = {    
+        let serif = vec![
+            "Times",
+            "TimesBold",
+            "TimesBoldItalic",
+            "TimesItalic",
+            "Times New Roman",
+            "TimesNewRomanPSMT",
+            "Antiqua",
+            "ANTQUAB",
+            "ANTQUABI",
+            "ANTQUAI",
+            "Didot",
+            "Georgia",
+            "Palatino",
+            "Palatino Linotype",
+            "Garamond",
+            "Adobe Garamond Pro",
+            "URW Palladio L",
+            "Bookman",
+            "URW Bookman L",
+            "New Century Schoolbook",
+            "TeX Gyre Schola",
+            "American Typewriter",
+            "Charis",
+            "CharisSILR",
+            "CharisSILB",
+            "Bitstream Vera Serif",
+            "DejaVuSerif",
+            "Shift",
+            "Shift Light",
+            "Genr102", // Gentium
+            "Geni102", // Gentium
+            "Kozuka Mincho Pr6N",
+            "Kozuka Mincho Pr6N L",
+            "Kozuka Mincho Pr6N R",
+            "Adobe Song Std",
+            "AdobeSongStd-Light",
+            "VeljovicStd",
+            "ITC Fenice Std",
+            "Stempel Garamond LT Std",
+            "STKai",
+            "Traveling _Typewriter", // Not monospace: http://fontzzz.com/font/3731_traveling_typewriter.htm
+            "serif",
+            "ui-serif",
+        ];
+
         let sans_serif = vec![
             "Arial",
             "ARIALUNI",
@@ -77,53 +123,7 @@ lazy_static! {
             "-apple-system",
             "BlinkMacSystemFont",
         ];
-    
-        let serif = vec![
-            "Times",
-            "TimesBold",
-            "TimesBoldItalic",
-            "TimesItalic",
-            "Times New Roman",
-            "TimesNewRomanPSMT",
-            "Antiqua",
-            "ANTQUAB",
-            "ANTQUABI",
-            "ANTQUAI",
-            "Didot",
-            "Georgia",
-            "Palatino",
-            "Palatino Linotype",
-            "Garamond",
-            "Adobe Garamond Pro",
-            "URW Palladio L",
-            "Bookman",
-            "URW Bookman L",
-            "New Century Schoolbook",
-            "TeX Gyre Schola",
-            "American Typewriter",
-            "Charis",
-            "CharisSILR",
-            "CharisSILB",
-            "Bitstream Vera Serif",
-            "DejaVuSerif",
-            "Shift",
-            "Shift Light",
-            "Genr102", // Gentium
-            "Geni102", // Gentium
-            "Kozuka Mincho Pr6N",
-            "Kozuka Mincho Pr6N L",
-            "Kozuka Mincho Pr6N R",
-            "Adobe Song Std",
-            "AdobeSongStd-Light",
-            "VeljovicStd",
-            "ITC Fenice Std",
-            "Stempel Garamond LT Std",
-            "STKai",
-            "Traveling _Typewriter", // Not monospace: http://fontzzz.com/font/3731_traveling_typewriter.htm
-            "serif",
-            "ui-serif",
-        ];
-    
+
         let monospace = vec![
             "Andale Mono",
             "Courier New",
@@ -168,8 +168,8 @@ lazy_static! {
         let mut map = HashMap::new();
 
         for (faces, generic) in [
-            (sans_serif, GenericFontFamily::SansSerif),
             (serif, GenericFontFamily::Serif),
+            (sans_serif, GenericFontFamily::SansSerif),
             (monospace, GenericFontFamily::Monospace),
             (fantasy, GenericFontFamily::Fantasy),
             (cursive, GenericFontFamily::Cursive),

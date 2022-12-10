@@ -42,14 +42,17 @@ struct ConvertCommand {
     ebook_path: PathBuf,
 
     /// The path for the output .html file. If not specified, it is saved in the
-    /// directory of the input file, with the ebook extension replaced with "html".
+    /// directory of the input file, with ".html" appended to the existing extension.
     #[clap(long, short = 'o')]
     output_path: Option<PathBuf>,
 
-    /// Whether to keep the ebook extension and just append ".html" instead.
-    /// Useful if you have e.g. both .mobi and .epub with the same name in a directory.
-    #[clap(long, short = 'k')]
-    keep_ebook_ext: bool,
+    /// Whether to remove the ebook extension before appending ".html".
+    /// 
+    /// This is not the default because it makes it harder to find the original
+    /// ebook file when viewing the .html, and because you may have e.g. both .mobi
+    /// and .epub with the same name in a directory.
+    #[clap(long, short = 'e')]
+    remove_ebook_ext: bool,
 
     /// Whether to replace the output .html file if it already exists.
     #[clap(long, short = 'f')]
@@ -230,7 +233,7 @@ fn main() -> Result<()> {
     let ConvertCommand {
         ebook_path,
         output_path,
-        keep_ebook_ext,
+        remove_ebook_ext,
         force,
         base_font_size,
         base_font_family,
@@ -248,12 +251,12 @@ fn main() -> Result<()> {
     let output_path = match output_path {
         Some(p) => p,
         None => {
-            if keep_ebook_ext {
+            if remove_ebook_ext {
+                ebook_path.with_extension("html")
+            } else {
                 let mut filename = ebook_path.clone().into_os_string();
                 filename.push(".html");
                 ebook_path.with_file_name(filename)
-            } else {
-                ebook_path.with_extension("html")
             }
         }
     };

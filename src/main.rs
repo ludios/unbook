@@ -299,6 +299,13 @@ fn main() -> Result<()> {
         // We need -vv for calibre to output its version
         .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
         .output()?;
+    if !calibre_output.status.success() {
+        let stderr = String::from_utf8_lossy(&calibre_output.stderr);
+        match calibre_output.status.code() {
+            None => bail!("ebook-convert was terminated by a signal:\n\n{stderr}"),
+            Some(code) => bail!("ebook-convert failed with exit status {code}:\n\n{stderr}"),
+        };
+    }
 
     let htmlz_file = fs::File::open(&output_htmlz).unwrap();
     let archive = zip::ZipArchive::new(htmlz_file)?;

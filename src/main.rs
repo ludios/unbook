@@ -16,6 +16,7 @@ use regex::Regex;
 use roxmltree::Document;
 use indoc::{indoc, formatdoc};
 use mobi::Mobi;
+use font::GenericFontFamily;
 
 mod css;
 mod font;
@@ -211,6 +212,12 @@ impl<R: Read + Seek> ZipReadTracker<R> {
     }
 }
 
+fn sort_join_hashset(hs: &HashSet<String>, sep: &str) -> String {
+    let mut v: Vec<String> = hs.iter().cloned().collect::<Vec<_>>();
+    v.sort();
+    v.join(sep)
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -386,8 +393,8 @@ fn main() -> Result<()> {
 
     // We do this outside and after lol-html because our <!-- header --> needs to contain
     // a list of files which were not read from the ZIP archive.
+    let family_map = css::get_generic_font_family_map(&calibre_css);
     let extra_head = {
-        let family_map = css::get_generic_font_family_map(&calibre_css);
         let fixed_css = css::fix_css(&calibre_css, &fro, &family_map);
         let ebook_basename =
             escape_html_comment_close(
@@ -451,6 +458,30 @@ fn main() -> Result<()> {
                 object-src 'self' data:;
             ">"#
         );
+
+        let empty = &HashSet::new();
+
+        let font_stacks_unknown    = family_map.get(&None).unwrap_or(empty);
+        let font_stacks_sans_serif = family_map.get(&Some(GenericFontFamily::SansSerif)).unwrap_or(empty);
+        let font_stacks_serif      = family_map.get(&Some(GenericFontFamily::Serif)).unwrap_or(empty);
+        let font_stacks_monospace  = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty);
+        let font_stacks_fantasy    = family_map.get(&Some(GenericFontFamily::Fantasy)).unwrap_or(empty);
+        let font_stacks_cursive    = family_map.get(&Some(GenericFontFamily::Cursive)).unwrap_or(empty);
+
+        let font_stacks_unknown_count    = font_stacks_unknown.len();
+        let font_stacks_sans_serif_count = font_stacks_sans_serif.len();
+        let font_stacks_serif_count      = font_stacks_serif.len();
+        let font_stacks_monospace_count  = font_stacks_monospace.len();
+        let font_stacks_fantasy_count    = font_stacks_fantasy.len();
+        let font_stacks_cursive_count    = font_stacks_cursive.len();
+
+        let font_stacks_unknown_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_unknown, "\n")));
+        let font_stacks_sans_serif_text = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_sans_serif, "\n")));
+        let font_stacks_serif_text      = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_serif, "\n")));
+        let font_stacks_monospace_text  = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_monospace, "\n")));
+        let font_stacks_fantasy_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_fantasy, "\n")));
+        let font_stacks_cursive_text    = indent("\t\t\t", &escape_html_comment_close(&sort_join_hashset(font_stacks_cursive, "\n")));
+
         // If you change the header: YOU MUST ALSO UPDATE first_4k.starts_with above
         formatdoc!("<!--
             \tebook converted to HTML with unbook {unbook_version}
@@ -460,10 +491,23 @@ fn main() -> Result<()> {
 
             \tmetadata.opf:
             {metadata_}
-            \tnumber of HTMLZ files which were not embedded in this HTML: {unread_files_count}
-            \tnote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
-            \tlist of dropped files:
+            \tHTMLZ files which were not embedded in this HTML (count: {unread_files_count}):
             {unread_files_text}
+            \tnote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
+
+            \tfont stacks:
+            \t\tunknown (count: {font_stacks_unknown_count}):
+            {font_stacks_unknown_text}
+            \t\tsans-serif (count: {font_stacks_sans_serif_count}):
+            {font_stacks_sans_serif_text}
+            \t\tserif (count: {font_stacks_serif_count}):
+            {font_stacks_serif_text}
+            \t\tmonospace (count: {font_stacks_monospace_count}):
+            {font_stacks_monospace_text}
+            \t\tfantasy (count: {font_stacks_fantasy_count}):
+            {font_stacks_fantasy_text}
+            \t\tcursive (count: {font_stacks_cursive_count}):
+            {font_stacks_cursive_text}
 
             \tcalibre stderr output:
             {calibre_stderr}

@@ -37,6 +37,7 @@ lazy_static! {
             "Timesbi",
             "Timesbd",
             "Timesi",
+            "Times (T1)",
             "Times New Roman",
             "Times New Roman Bold",
             "Times New Roman Bold Italic",
@@ -49,6 +50,7 @@ lazy_static! {
             "ANTQUAB",
             "ANTQUABI",
             "ANTQUAI",
+            "Book Antiqua",
             "Didot",
             "Georgia",
             "Cambria",
@@ -58,14 +60,18 @@ lazy_static! {
             "Palatino Linotype",
             "Palatino LT",
             "Garamond",
+            "Adobe Garamond",
             "Adobe Garamond Pro",
+            "AGaramondPro",
             "URW Palladio L",
             "Bookman",
             "URW Bookman L",
             "New Century Schoolbook",
             "TeX Gyre Schola",
             "American Typewriter",
+            "BergamoStd",
             "Charis",
+            "CharisSIL",
             "Charis SIL",
             "Charis SIL Regular",
             "Charis SIL Bold",
@@ -91,6 +97,10 @@ lazy_static! {
             "Constantia",
             "Constantia Italic",
             "Adobe Caslon Pro",
+            "LinLibertine",
+            "Liberation Serif",
+            "FreeSerif",
+            "Minion",
             "Minion Pro",
             "Minion Pro Cond",
             "Kozuka Mincho Pr6N",
@@ -131,8 +141,11 @@ lazy_static! {
             "HelveticaNeueLTStd-Md",
             "HelveticaNeueLTStd-MdCn",
             "HelveticaNeueLTStd-MdCnO",
+            "Helvetica LT",
             "Verdana",
             "Trebuchet MS",
+            "Tahoma",
+            "Lucida Grande",
             "Calibri",
             "CALIBRIB",
             "CALIBRII",
@@ -174,6 +187,7 @@ lazy_static! {
             "Free Sans Bold",
             "Liberation",
             "LiberationNarrow",
+            "RotisSansSerif",
             "MgOpen Modata",
             "ＭＳ Ｐゴシック",
             "KaiTi",
@@ -183,6 +197,7 @@ lazy_static! {
             "TradeGothicLTStd18",
             "TradeGothicLTStd20",
             "sans-serif",
+            "sans serif", // Typo seen in a few books
             "ui-sans-serif",
             "system-ui",
             "-apple-system",
@@ -217,8 +232,11 @@ lazy_static! {
         let cursive = vec![
             "Comic Sans MS",
             "Comic Sans",
+            "Segoe Script",
             "Apple Chancery",
             "Bradley Hand",
+            "Lucida Calligraphy",
+            "Lucida Handwriting",
             "Brush Script MT",
             "Brush Script Std",
             "Snell Roundhand",
@@ -235,6 +253,7 @@ lazy_static! {
             "Blippo",
             "Stencil Std",
             "Marker Felt",
+            "Segoe Print",
             "Trattatello",
             "fantasy",
         ];
@@ -294,6 +313,8 @@ pub(crate) mod tests {
         assert_eq!(classify_font_family("ARIAL, serif, serif"), Some(GenericFontFamily::SansSerif));
         assert_eq!(classify_font_family("Times, ARIAL, serif, serif"), Some(GenericFontFamily::Serif));
         assert_eq!(classify_font_family("\"Times New Roman\", ARIAL, serif, serif"), Some(GenericFontFamily::Serif));
+        assert_eq!(classify_font_family("\"Charis SIL\", sans-serif"), Some(GenericFontFamily::Serif));
+        assert_eq!(classify_font_family("\"Charis SIL\""), Some(GenericFontFamily::Serif));
         assert_eq!(classify_font_family("courier, ARIAL, serif, serif"), Some(GenericFontFamily::Monospace));
         assert_eq!(classify_font_family("Blippo, serif"), Some(GenericFontFamily::Fantasy));
         assert_eq!(classify_font_family("'Comic Sans', serif"), Some(GenericFontFamily::Cursive));

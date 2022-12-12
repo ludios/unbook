@@ -20,8 +20,7 @@ regex = { version = "1", default-features = false } # We don't much performance 
 roxmltree = "0.15"
 lazy_static = "1"
 infer = { version = "0.11", default-features = false }
-# mobi 0.7.0 has issues, waiting for a new release: https://github.com/vv9k/mobi-rs/issues/41
-mobi = { git = "https://github.com/vv9k/mobi-rs" }
+mobi = "0.8"
 
 [profile.dev]
 # Reduce debug rebuild time

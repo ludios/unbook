@@ -15,6 +15,7 @@ use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use regex::Regex;
 use roxmltree::Document;
 use indoc::{indoc, formatdoc};
+use std::panic;
 use mobi::Mobi;
 use font::GenericFontFamily;
 
@@ -221,6 +222,15 @@ fn sort_join_hashset(hs: &HashSet<String>, sep: &str) -> String {
     v.join(sep)
 }
 
+// Thanks to Anton Bukov in https://stackoverflow.com/a/59211505
+fn catch_unwind_silent<F: FnOnce() -> R + panic::UnwindSafe, R>(f: F) -> std::thread::Result<R> {
+    let prev_hook = panic::take_hook();
+    panic::set_hook(Box::new(|_| {}));
+    let result = panic::catch_unwind(f);
+    panic::set_hook(prev_hook);
+    result
+}
+
 fn main() -> Result<()> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
@@ -277,15 +287,22 @@ fn main() -> Result<()> {
         bail!("input file {ebook_path:?} is a PDF, refusing to create a poor HTML conversion");
     }
     if infer::book::is_mobi(&first_4k) {
-        // mobi-rs might not be able to parse every MOBI; just skip the AZW4 check if it fails
-        if let Ok(mobi) = Mobi::from_path(&ebook_path) {
-            for record in mobi.raw_records() {
-                if record.content.starts_with(b"%MOP") {
-                    bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
-                        possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+        // https://github.com/vv9k/mobi-rs/issues/42
+        // If it panics, we don't get an Ok(...) and we just ignore it.
+        if let Ok(result) = catch_unwind_silent(|| {
+            // mobi-rs might not be able to parse every MOBI; just skip the AZW4 check if it fails
+            if let Ok(mobi) = Mobi::from_path(&ebook_path) {
+                for record in mobi.raw_records() {
+                    if record.content.starts_with(b"%MOP") {
+                        bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
+                            possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+                    }
                 }
             }
-        }
+            Ok(())
+        }) {
+            result?;
+        };
     }
 
     let output_htmlz = {

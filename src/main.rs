@@ -18,6 +18,7 @@ use indoc::{indoc, formatdoc};
 use std::panic;
 use mobi::Mobi;
 use font::GenericFontFamily;
+use zip::result::ZipError;
 
 mod css;
 mod font;
@@ -192,6 +193,7 @@ fn get_mime_type(filename: &str) -> Result<&'static str> {
 struct ZipReadTracker<R> {
     pub archive: zip::ZipArchive<R>,
     pub unread_files: HashSet<String>,
+    pub missing_files: HashSet<String>,
 }
 
 impl<R: Read + Seek> ZipReadTracker<R> {
@@ -201,18 +203,28 @@ impl<R: Read + Seek> ZipReadTracker<R> {
             .filter(|name| !(name.ends_with('/') || name.ends_with('\\')))
             .map(String::from)
             .collect();
+        let missing_files = HashSet::new();
         ZipReadTracker {
             archive,
-            unread_files
+            unread_files,
+            missing_files,
         }
     }
 
-    fn get_content(&mut self, fname: &str) -> Result<Vec<u8>> {
-        let mut entry = self.archive.by_name(fname)?;
-        let mut vec = Vec::with_capacity(entry.size() as usize);
-        entry.read_to_end(&mut vec)?;
-        self.unread_files.remove(fname);
-        Ok(vec)
+    fn get_content(&mut self, fname: &str) -> Result<Option<Vec<u8>>> {
+        match self.archive.by_name(fname) {
+            Err(ZipError::FileNotFound) => {
+                self.missing_files.insert(fname.to_string());
+                Ok(None)
+            },
+            Err(e) => bail!(e),
+            Ok(mut entry) => {
+                let mut vec = Vec::with_capacity(entry.size() as usize);
+                entry.read_to_end(&mut vec)?;
+                self.unread_files.remove(fname);
+                Ok(Some(vec))
+            }
+        }
     }
 }
 
@@ -333,17 +345,27 @@ fn main() -> Result<()> {
     debug!(filenames = ?filenames, "files inside htmlz");
     let mut zip = ZipReadTracker::new(archive);
 
-    let html = zip.get_content("index.html")?;
+    let html = zip.get_content("index.html")?
+        .ok_or_else(|| anyhow!("index.html not found in HTMLZ"))?;
     if !html.starts_with(b"<html><head>") {
         bail!("index.html in {output_htmlz:?} does not start with <html><head>");
     }
-    let calibre_css = String::from_utf8(zip.get_content("style.css")?)?;
-    let metadata = String::from_utf8(zip.get_content("metadata.opf")?)?;
+    let calibre_css = String::from_utf8(
+        zip.get_content("style.css")?
+        .ok_or_else(|| anyhow!("style.css not found in HTMLZ"))?
+    )?;
+    let metadata = String::from_utf8(
+        zip.get_content("metadata.opf")?
+        .ok_or_else(|| anyhow!("metadata.opf not found in HTMLZ"))?
+    )?;
     let metadata_doc = parse_xml(&metadata)?;
     let cover_fname = get_cover_filename(&metadata_doc);
     let mut cover = None;
     if let Some(cover_fname) = &cover_fname {
-        cover = Some(zip.get_content(cover_fname)?);
+        cover = Some(
+            zip.get_content(cover_fname)?
+            .ok_or_else(|| anyhow!("{cover_fname} not found in HTMLZ"))?
+        );
     }
     let mut output = Vec::with_capacity(html.len() * 4);
     let zip_arc = Arc::new(Mutex::new(zip));
@@ -370,25 +392,27 @@ fn main() -> Result<()> {
                 element!("img[src]", |el| {
                     let src = el.get_attribute("src").unwrap();
                     let mut zip = zip_arc.lock().unwrap();
-                    let image = zip.get_content(&src)?;
-                    let mime_type = get_mime_type(&src)?;
-                    let image_base64 = base64::encode(image);
-                    let inline_src = format!("data:{mime_type};base64,{image_base64}");
-                    el.set_attribute("src", &inline_src)?;
-                    // Make the HTML source a little easier to read by putting inline images on their own lines
-                    el.before("<!--\n-->", ContentType::Html);
-                    el.after("<!--\n-->", ContentType::Html);
+                    if let Some(image) = zip.get_content(&src)? {
+                        let mime_type = get_mime_type(&src)?;
+                        let image_base64 = base64::encode(image);
+                        let inline_src = format!("data:{mime_type};base64,{image_base64}");
+                        el.set_attribute("src", &inline_src)?;
+                        // Make the HTML source a little easier to read by putting inline images on their own lines
+                        el.before("<!--\n-->", ContentType::Html);
+                        el.after("<!--\n-->", ContentType::Html);        
+                    }
                     Ok(())
                 }),
                 // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image
                 element!("image[href]", |el| {
                     let href = el.get_attribute("href").unwrap();
                     let mut zip = zip_arc.lock().unwrap();
-                    let image = zip.get_content(&href)?;
-                    let mime_type = get_mime_type(&href)?;
-                    let image_base64 = base64::encode(image);
-                    let inline_href = format!("data:{mime_type};base64,{image_base64}");
-                    el.set_attribute("href", &inline_href)?;
+                    if let Some(image) = zip.get_content(&href)? {
+                        let mime_type = get_mime_type(&href)?;
+                        let image_base64 = base64::encode(image);
+                        let inline_href = format!("data:{mime_type};base64,{image_base64}");
+                        el.set_attribute("href", &inline_href)?;        
+                    }
                     Ok(())
                 }),
                 // Delete reference to style.css
@@ -456,6 +480,15 @@ fn main() -> Result<()> {
                 indent("\t\t", &escape_html_comment_close(&unread_files.join("\n")))
             )
         };
+        let (missing_files_count, missing_files_text) = {
+            let zip = zip_arc.lock().unwrap();
+            let mut missing_files: Vec<String> = zip.missing_files.iter().cloned().collect();
+            missing_files.sort();
+            (
+                missing_files.len(),
+                indent("\t\t", &escape_html_comment_close(&missing_files.join("\n")))
+            )
+        };
         let text_fragments_js = include_str!("text-fragments-polyfill.js");
         let text_fragments_polyfill = match text_fragments_polyfill {
             TextFragmentsPolyfill::none => String::new(),
@@ -519,9 +552,12 @@ fn main() -> Result<()> {
 
             \tmetadata.opf:
             {metadata_}
-            \tHTMLZ files which were not embedded in this HTML (count: {unread_files_count}):
+            \tHTMLZ files which were discarded because they were not referenced by the HTML (count: {unread_files_count}):
             {unread_files_text}
             \tnote: if this is just one image, it is typically because Calibre erroneously duplicated the cover image.
+
+            \tfiles which were referenced but missing in the HTMLZ (count: {missing_files_count}):
+            {missing_files_text}
 
             \tfont stacks:
             \t\tunknown (count: {font_stacks_unknown_count}):

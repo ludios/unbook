@@ -1,6 +1,5 @@
 use std::{collections::{HashMap, HashSet}, borrow::Cow};
 
-use indoc::indoc;
 use clap::ValueEnum;
 use indoc::formatdoc;
 use regex::Regex;
@@ -29,6 +28,12 @@ pub(crate) struct Ruleset {
     pub declaration_block: String,
 }
 
+impl ToString for Ruleset {
+    fn to_string(&self) -> String {
+        format!("{} {{\n    {}\n}}\n", self.selectors, self.declaration_block)
+    }
+}
+
 /// Lightly parse only the CSS that Calibre might emit, just enough so that
 /// we know which selectors each block is for.
 pub(crate) fn get_css_rulesets(css: &str) -> Vec<Ruleset> {
@@ -38,13 +43,23 @@ pub(crate) fn get_css_rulesets(css: &str) -> Vec<Ruleset> {
         .captures_iter(css)
         .map(|m| Ruleset {
             selectors: m["selectors"].trim().to_string(),
-            declaration_block: m["declaration_block"].to_string(),
+            declaration_block: m["declaration_block"].trim().to_string(),
         }).collect()
 }
 
 pub(crate) fn get_all_font_stacks(css: &str) -> Vec<String> {
-    let font_family = Regex::new(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$").unwrap();
-    font_family.captures_iter(css).map(|m| m["stack"].to_string()).collect()
+    let mut out = Vec::new();
+    let rulesets = get_css_rulesets(css);
+    for ruleset in rulesets {
+        if ruleset.selectors == "@font-face" {
+            continue;
+        }
+        let font_family = Regex::new(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$").unwrap();
+        for m in font_family.captures_iter(&ruleset.declaration_block) {
+            out.push(m["stack"].to_string());
+        }
+    }
+    out
 }
 
 pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_height: &str) -> String {
@@ -135,13 +150,14 @@ fn make_combined_regex(items: &[&str]) -> String {
     re
 }
 
-fn replace_font_stocks<'a>(css: &'a str, stacks: &[&str], replacement: &str) -> Cow<'a, str> {
+fn replace_font_stacks<'a>(css: &'a str, stacks: &[&str], replacement: &str) -> Cow<'a, str> {
     let re = make_combined_regex(stacks);
     let font_family = Regex::new(&format!(r"(?m)^(?P<indent>\s*)font-family:\s*(?P<stack>{re})\s*;?$")).unwrap();
     font_family.replace_all(css, &format!("${{indent}}font-family: {replacement}; /* was font-family: ${{stack}} */ /* unbook */"))
 }
 
-pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
+/// Fix just one declaration block (no selector)
+pub(crate) fn fix_css_declaration_block(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
     // Replace line-height overrides so that they are not smaller that our
     // minimum. A minimum line height aids in reading by reducing the chance
     // of regressing to an already-read line.
@@ -174,7 +190,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let mut both: HashSet<&String> = serif.union(sans_serif).collect();
             if both.len() == 1 {
                 let only = both.drain().next().unwrap();
-                replace_font_stocks(&css, &[only], "var(--base-font-family)")
+                replace_font_stacks(&css, &[only], "var(--base-font-family)")
             } else {
                 css
             }
@@ -186,7 +202,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let mut both: HashSet<&String> = serif.union(sans_serif).collect();
             if !both.is_empty() {
                 let stacks: Vec<&str> = both.drain().map(String::as_str).collect();
-                replace_font_stocks(&css, &stacks, "var(--base-font-family)")
+                replace_font_stacks(&css, &stacks, "var(--base-font-family)")
             } else {
                 css
             }
@@ -201,7 +217,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let mut monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty).clone();
             if monospace.len() == 1 {
                 let only = monospace.drain().next().unwrap();
-                replace_font_stocks(&css, &[&only], "var(--monospace-font-family)")
+                replace_font_stacks(&css, &[&only], "var(--monospace-font-family)")
             } else {
                 css
             }
@@ -211,19 +227,40 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             let monospace = family_map.get(&Some(GenericFontFamily::Monospace)).unwrap_or(empty);
             if !monospace.is_empty() {
                 let stacks: Vec<&str> = monospace.iter().map(String::as_str).collect();
-                replace_font_stocks(&css, &stacks, "var(--monospace-font-family)")
+                replace_font_stacks(&css, &stacks, "var(--monospace-font-family)")
             } else {
                 css
             }
         }
     };
-
+    
     css.to_string()
+}
+
+pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
+    let mut out = String::with_capacity(css.len() + 4096);
+
+    let rulesets = get_css_rulesets(css);
+    for ruleset in rulesets {
+        if ruleset.selectors == "@font-face" {
+            // Calibre currently doesn't include any OEBPS/fonts in HTMLZ output,
+            // but we still include @font-face in the output to make the intended
+            // font apparent.
+            out.push_str(&ruleset.to_string());
+        } else {
+            let fixed_block = fix_css_declaration_block(&ruleset.declaration_block, fro, family_map);
+            let ruleset = Ruleset { selectors: ruleset.selectors, declaration_block: fixed_block };
+            out.push_str(&ruleset.to_string());
+        }
+    }
+
+    out
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use indoc::indoc;
 
     #[test]
     fn test_get_css_rulesets() {
@@ -238,21 +275,23 @@ pub(crate) mod tests {
             .block4{
                 color: blue
             }
-            .block5{color: green}
+            .block5{
+                color: green
+                }
         ");
 
         let expected = vec![
             Ruleset {
                 selectors: ".block2, img".to_string(),
-                declaration_block: "\n    display: block;\n    margin-bottom: 1em;\n    ".to_string(),
+                declaration_block: "display: block;\n    margin-bottom: 1em;".to_string(),
             },
             Ruleset {
                 selectors: ".block3".to_string(),
-                declaration_block: "\n    color: red\n".to_string(),
+                declaration_block: "color: red".to_string(),
             },
             Ruleset {
                 selectors: ".block4".to_string(),
-                declaration_block: "\n    color: blue\n".to_string(),
+                declaration_block: "color: blue".to_string(),
             },
             Ruleset {
                 selectors: ".block5".to_string(),
@@ -265,7 +304,15 @@ pub(crate) mod tests {
 
     #[test]
     fn test_get_all_font_stacks() {
+        // Any @font-face should be ignored
         let input = "
+            @font-face {
+                font-family: Something;
+                font-style: normal;
+                font-weight: normal;
+                src: url(OEBPS/fonts/Something.ttf)
+            }
+
             .something {
                 font-family: Verdana, sans-serif
                 font-family:Verdana;
@@ -301,103 +348,100 @@ pub(crate) mod tests {
 
     #[test]
     fn test_fix_css_line_height() {
-        let input = "
+        let input = indoc!("
             .something {
                 line-height: 1.2
             }
-
             .something-else {
                 line-height: 1.3;
                 font-family: Arial
             }
-        ";
+        ");
 
-        let output = "
+        let output = indoc!("
             .something {
                 line-height: max(1.2, var(--min-line-height)); /* unbook */
             }
-
             .something-else {
                 line-height: max(1.3, var(--min-line-height)); /* unbook */
                 font-family: Arial
             }
-        ";
+        ");
 
         assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 
     #[test]
     fn test_fix_css_text_align() {
-        let input = "
+        let input = indoc!("
             .something-1 {
                 text-align: right;
                 text-align: right
             }
-
             .something-2 {
                 text-align: left;
                 text-align: left
             }
-
             .something-3 {
                 text-align: justify
             }
-
             .something-4 {
                 text-align: justify;
             }
-        ";
+        ");
 
-        let output = "
+        let output = indoc!("
             .something-1 {
                 text-align: right;
                 text-align: right
             }
-
             .something-2 {
                 text-align: left;
                 text-align: left
             }
-
             .something-3 {
                 /* was text-align: justify; */ /* unbook */
             }
-
             .something-4 {
                 /* was text-align: justify; */ /* unbook */
             }
-        ";
+        ");
 
         assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 
     #[test]
     fn test_fix_font_size() {
-        let input = "
+        let input = indoc!("
             .something {
                 font-size: 12px
             }
-
             .something-else {
                 font-size: 14pt;
             }
-        ";
+        ");
 
-        let output = "
+        let output = indoc!("
             .something {
                 font-size: max(12px, var(--min-font-size)); /* unbook */
             }
-
             .something-else {
                 font-size: max(14pt, var(--min-font-size)); /* unbook */
             }
-        ";
+        ");
 
         assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
     }
 
     fn input_with_one_font_family() -> &'static str {
-        "
+        // Any @font-face should be ignored
+        indoc!("
+            @font-face {
+                font-family: Arial;
+                font-style: normal;
+                font-weight: normal;
+                src: url(OEBPS/fonts/Arial.ttf)
+            }
             .something {
                 font-family: Verdana, sans-serif
             }
@@ -410,11 +454,11 @@ pub(crate) mod tests {
             code {
                 font-family: Courier, monospace;
             }
-        "
+        ")
     }
 
     fn input_with_distinct_font_families() -> &'static str {
-        "
+        indoc!("
             .something {
                 font-family: Verdana, sans-serif
             }
@@ -427,7 +471,7 @@ pub(crate) mod tests {
             code {
                 font-family: Consolas, monospace;
             }
-        "
+        ")
     }
 
     #[test]
@@ -438,7 +482,13 @@ pub(crate) mod tests {
 
     #[test]
     fn test_fix_font_family_if_one_base() {
-        let output = "
+        let output = indoc!("
+            @font-face {
+                font-family: Arial;
+                font-style: normal;
+                font-weight: normal;
+                src: url(OEBPS/fonts/Arial.ttf)
+            }
             .something {
                 font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
             }
@@ -451,7 +501,7 @@ pub(crate) mod tests {
             code {
                 font-family: Courier, monospace;
             }
-        ";
+        ");
 
         let input = input_with_one_font_family();
         let mut fro = dummy_fro();
@@ -472,7 +522,13 @@ pub(crate) mod tests {
 
     #[test]
     fn test_fix_font_family_both() {
-        let output = "
+        let output = indoc!("
+            @font-face {
+                font-family: Arial;
+                font-style: normal;
+                font-weight: normal;
+                src: url(OEBPS/fonts/Arial.ttf)
+            }
             .something {
                 font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
             }
@@ -485,7 +541,7 @@ pub(crate) mod tests {
             code {
                 font-family: var(--monospace-font-family); /* was font-family: Courier, monospace */ /* unbook */
             }
-        ";
+        ");
 
         let input = input_with_one_font_family();
         let mut fro = dummy_fro();
@@ -498,7 +554,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_fix_font_family_always() {
-        let output = "
+        let output = indoc!("
             .something {
                 font-family: var(--base-font-family); /* was font-family: Verdana, sans-serif */ /* unbook */
             }
@@ -511,7 +567,7 @@ pub(crate) mod tests {
             code {
                 font-family: var(--monospace-font-family); /* was font-family: Consolas, monospace */ /* unbook */
             }
-        ";
+        ");
 
         let input = input_with_distinct_font_families();
         let mut fro = dummy_fro();

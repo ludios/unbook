@@ -38,7 +38,7 @@ enum TextFragmentsPolyfill {
 #[clap(name = "unbook", version)]
 /// Convert an ebook to a single HTML file
 struct ConvertCommand {
-    /// The path to an .{epub,mobi,azw,azw3,lit} file, or other format that Calibre
+    /// The path to an .{epub,mobi,azw,azw3,lit,chm} file, or other format that Calibre
     /// can reasonably convert to HTMLZ. See https://manual.calibre-ebook.com/faq.html
     /// for a list of formats it supports, not all of which will convert nicely to HTMLZ.
     ebook_path: PathBuf,

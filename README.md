@@ -6,13 +6,13 @@ unbook is a command-line program for converting an .epub, .mobi, .azw, .azw3, or
 
 To use unbook: install Calibre, install a stable Rust compiler via rustup, then:
 
-```
+```bash
 cargo install --git https://github.com/ludios/unbook
 ```
 
 Usage:
 
-```
+```bash
 unbook PATH_TO_EBOOK # write .html file to the same directory
 unbook PATH_TO_EBOOK -o out.html
 unbook -f PATH_TO_EBOOK # replace .html file if already exists

@@ -1,5 +1,6 @@
 use std::{collections::{HashMap, HashSet}, borrow::Cow};
 
+use indoc::indoc;
 use clap::ValueEnum;
 use indoc::formatdoc;
 use regex::Regex;
@@ -20,6 +21,25 @@ pub(crate) struct FontReplacementOptions {
     pub monospace_font_family: String,
     pub replace_serif_and_sans_serif: FontFamilyReplacementMode,
     pub replace_monospace: FontFamilyReplacementMode,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Ruleset {
+    pub selectors: String,
+    pub declaration_block: String,
+}
+
+/// Lightly parse only the CSS that Calibre might emit, just enough so that
+/// we know which selectors each block is for.
+pub(crate) fn get_css_rulesets(css: &str) -> Vec<Ruleset> {
+    // TODO: use a real parser, perhaps
+    let rulesets = Regex::new(r"(?m)^(?P<selectors>[^{]+)\s*\{(?P<declaration_block>[^}]*)\}").unwrap();
+    rulesets
+        .captures_iter(css)
+        .map(|m| Ruleset {
+            selectors: m["selectors"].trim().to_string(),
+            declaration_block: m["declaration_block"].to_string(),
+        }).collect()
 }
 
 pub(crate) fn get_all_font_stacks(css: &str) -> Vec<String> {
@@ -206,6 +226,44 @@ pub(crate) mod tests {
     use super::*;
 
     #[test]
+    fn test_get_css_rulesets() {
+        let css = indoc!("
+            .block2, img {
+                display: block;
+                margin-bottom: 1em;
+                }
+            .block3 {
+                color: red
+            }
+            .block4{
+                color: blue
+            }
+            .block5{color: green}
+        ");
+
+        let expected = vec![
+            Ruleset {
+                selectors: ".block2, img".to_string(),
+                declaration_block: "\n    display: block;\n    margin-bottom: 1em;\n    ".to_string(),
+            },
+            Ruleset {
+                selectors: ".block3".to_string(),
+                declaration_block: "\n    color: red\n".to_string(),
+            },
+            Ruleset {
+                selectors: ".block4".to_string(),
+                declaration_block: "\n    color: blue\n".to_string(),
+            },
+            Ruleset {
+                selectors: ".block5".to_string(),
+                declaration_block: "color: green".to_string(),
+            },
+        ];
+
+        assert_eq!(get_css_rulesets(css), expected);
+    }
+
+    #[test]
     fn test_get_all_font_stacks() {
         let input = "
             .something {
@@ -213,22 +271,22 @@ pub(crate) mod tests {
                 font-family:Verdana;
                 font-size: 20px;
             }
-
+    
             .something-else {
             font-family: system-ui;
             font-family: Arial;
             }
         ";
-
+    
         let expected = vec![
             "Verdana, sans-serif",
             "Verdana",
             "system-ui",
             "Arial",
         ];
-
+    
         assert_eq!(get_all_font_stacks(input), expected);
-    }
+    }    
 
     fn dummy_fro() -> FontReplacementOptions {
         FontReplacementOptions {

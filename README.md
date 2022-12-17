@@ -33,7 +33,7 @@ unbook --help
 *	Text-index books with software that supports HTML but not ebook formats
 
 
-## Things unbook does beyond Calibre's HTMLZ
+## Things unbook does beyond Calibre's <a href="https://wiki.mobileread.com/wiki/HTMLZ">HTMLZ</a>
 
 *   Inline the stylesheet, inline all images using `data:` URLs
 *   Attach the book cover to the top of the HTML

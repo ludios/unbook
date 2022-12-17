@@ -127,6 +127,12 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
             vertical-align: middle;
         }}
 
+        /* Center the cover when the image is smaller than the max-width */
+        img.unbook-cover {{
+            display: block;
+            margin: 1em auto;
+        }}
+
         /* calibre */
     ")
 }

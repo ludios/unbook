@@ -380,7 +380,7 @@ fn main() -> Result<()> {
                         let image_base64 = base64::encode(cover.as_ref().unwrap());
                         let inline_src = format!("data:{mime_type};base64,{image_base64}");
                         let extra_body = formatdoc!("
-                            \n<img alt=\"Book cover\" src=\"{inline_src}\" />
+                            \n<img class=\"unbook-cover\" alt=\"Book cover\" src=\"{inline_src}\" />
                             {skip_cover}
                         ");
                         el.prepend(&extra_body, ContentType::Html);

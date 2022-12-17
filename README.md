@@ -33,6 +33,24 @@ unbook --help
 *	Text-index books with software that supports HTML but not ebook formats
 
 
+## Things unbook does beyond Calibre's HTMLZ
+
+*   Inline the stylesheet, inline all images using `data:` URLs
+*   Attach the book cover to the top of the HTML
+*   Attach `metadata.opf` and the Calibre conversion log inside its `<!-- comment -->` header
+*   Add `<meta name="viewport" content="width=device-width" />` for reading on mobile
+*   Add `<meta name="referrer" content="no-referrer" />`
+*   Add `<meta http-equiv="Content-Security-Policy" ...>` to block external scripts and resources from loading
+*   Add <a href="https://github.com/GoogleChromeLabs/text-fragments-polyfill">Text Fragments Polyfill</a> so that `#:~:text=` links work for Firefox and Safari < 16.1 users
+*   Add some CSS
+    *   Set a body `max-width`
+    *   Adjust the base font size
+    *   Set a base `font-family`
+    *   Set a minimum font size
+    *   Set a minimum line height
+*   When a book uses just one `font-family` for serif and sans-serif, replace these `font-family` with the base `font-family`.
+
+
 ## Limitations
 
 *	unbook produces a long HTML file without a chapter browser or fancy reader features. It does not save your reading position, though your browser may succeed at this if you never click an #anchor. unbook does not provide text adjustments (instead, re-run unbook with the settings you like).

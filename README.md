@@ -35,7 +35,7 @@ unbook --help
 
 *	unbook produces a long HTML file without a chapter browser or fancy reader features. It does not save your reading position, though your browser may succeed at this if you never click an #anchor. unbook does not provide text adjustments (instead, re-run unbook with the settings you like).
 
-*	Some ebooks, mostly those with large images, become too large when converted to a single HTML file. These may just be unsuitable for conversion using unbook.
+*	Some ebooks, mostly those with many large images, become too large when converted to a single HTML file. These may just be unsuitable for conversion using unbook.
 
 *	unbook does not generate "dark mode" CSS because there is no way to generate an authoritative "dark" version of a book without manual review: consider photos and diagrams; some images need to be inverted while others do not. Some books have more complicated use of color in tables and SVG.
 

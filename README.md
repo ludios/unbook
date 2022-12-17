@@ -2,7 +2,7 @@
 
 # unbook
 
-unbook is a command-line program for converting a DRM-free .epub, .mobi, .azw, .azw3, .lit, or .chm ebook to a self-contained HTML file. PDF is **not** supported. In the HTML output, all images are included inline as base64, inspired by [SingleFile](https://github.com/gildas-lormeau/SingleFile). unbook adds some CSS to render things nicely on both large screens and mobile. You can open unbook's output HTML in any browser, experience normal scrolling behavior, and read with whatever browser extensions and bookmarklets you like.
+unbook is a command-line program for converting a DRM-free .epub, .mobi, .azw, .azw3, .lit, or .chm ebook to a self-contained HTML file. PDF is **not** supported. In the HTML output, all images are included inline as `data:` URIs, inspired by [SingleFile](https://github.com/gildas-lormeau/SingleFile). unbook adds some CSS to render things nicely on both large screens and mobile. You can open unbook's output HTML in any browser, experience normal scrolling behavior, and read with whatever browser extensions and bookmarklets you like.
 
 <!--Sample output (processing [this input file]). Compare with [Calibre's HTMLZ output] (which unbook uses and postprocesses).-->
 
@@ -35,7 +35,7 @@ unbook --help
 
 ## Things unbook does beyond Calibre's <a href="https://wiki.mobileread.com/wiki/HTMLZ">HTMLZ</a>
 
-*   Inline the stylesheet, inline all images using `data:` URLs
+*   Inline the stylesheet, inline all images using `data:` URIs
 *   Attach the book cover to the top of the HTML
 *   Attach `metadata.opf` and the Calibre conversion log inside its `<!-- comment -->` header
 *   Add `<meta name="viewport" content="width=device-width" />` for reading on mobile

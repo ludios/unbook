@@ -37,13 +37,11 @@ unbook --help
 
 *	Some ebooks, mostly those with a large number of images, become too large when converted. These may just be unsuitable for conversion to a single HTML file.
 
-*	unbook does not generate "dark mode" CSS because there is no way to generate an authoritative "dark" version of a book without manual review: consider photos and diagrams; some images need to be inverted while others do not. Some books have more complicated use of color in tables and SVG. Please use Dark Reader instead (on mobile, it's <a href="https://darkreader.org/blog/mobile/">available on iOS for Safari, and on Android for Firefox and Kiwi Browser</a>).
+*	unbook does not generate "dark mode" CSS because there is no way to generate an authoritative "dark" version of a book without manual review: consider photos and diagrams; some images need to be inverted while others do not. Some books have more complicated use of color in tables and SVG.
 
-	To invert all images on a page, use this bookmarklet:
+    Please use <a href="https://darkreader.org/">Dark Reader</a> if you need dark mode. On mobile, it is <a href="https://darkreader.org/blog/mobile/">available on iOS for Safari, and on Android for Firefox and Kiwi Browser</a>.
 
-	```js
-	javascript:(function() { document.querySelectorAll('canvas, img').forEach(function(e) { e.style.filter = 'invert(1) hue-rotate(180deg)'; }); })();
-	```
+    Dark Reader does not generally invert images. If most of the images in a book should be inverted, use <a href="https://github.com/ludios/useful-bookmarklets#invert-all-images">this 'Invert all images' bookmarklet</a>.
 
 *	Embedded fonts are currently lost due to a Calibre limitation.
 

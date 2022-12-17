@@ -49,8 +49,7 @@ unbook --help
 
 ## Alternatives which don't quite solve the same problem
 
-*   Convert to .epub if necessary and extract as a ZIP
-	*   You'll get one XHTML file per chapter.
+*   Convert to .epub if necessary and extract as a ZIP. You will get one XHTML file per chapter.
 *   <a href="https://manual.calibre-ebook.com/server.html">The calibre Content server</a>
 
 

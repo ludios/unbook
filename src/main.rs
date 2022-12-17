@@ -7,6 +7,7 @@ use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
 use anyhow::{Result, anyhow, bail};
+use std::env;
 use std::io::{self, Seek};
 use std::path::Path;
 use std::{process::Command, path::PathBuf};
@@ -318,18 +319,30 @@ fn main() -> Result<()> {
 
     let output_htmlz = {
         let random: String = std::iter::repeat_with(fastrand::alphanumeric).take(12).collect();
-        std::env::temp_dir().join(format!("unbook-{random}.htmlz"))
+        env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
     let ebook_file_size = {
         let ebook_file = fs::File::open(&ebook_path)?;
         let metadata = File::metadata(&ebook_file)?;
         metadata.len()
     };
-    let calibre_output = Command::new(ebook_convert)
-        .env_clear()
-        // We need -vv for calibre to output its version
-        .args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")])
-        .output()?;
+
+    let mut command = Command::new(ebook_convert);
+    command.env_clear();
+    // We need -vv for calibre to output its version
+    command.args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")]);
+    // Just .env_clear() is fine on Linux, but Python on Windows requires at least SystemRoot
+    // to be present to avoid this:
+    //
+    // Fatal Python error: _Py_HashRandomization_Init: failed to get random numbers to initialize Python
+    // Python runtime state: preinitialized
+    for (name, value) in ["SystemDrive", "SystemRoot", "TEMP", "TMP"]
+        .iter()
+        .filter_map(|name| env::var(name).ok().map(|value| (name, value)))
+    {
+        command.env(name, value);
+    }
+    let calibre_output = command.output()?;
     if !calibre_output.status.success() {
         let stderr = String::from_utf8_lossy(&calibre_output.stderr);
         match calibre_output.status.code() {

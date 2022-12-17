@@ -45,13 +45,15 @@ unbook --help
 	javascript:(function() { document.querySelectorAll('canvas, img').forEach(function(e) { e.style.filter = 'invert(1) hue-rotate(180deg)'; }); })();
 	```
 
-*	Embedded fonts are lost due to a Calibre limitation. This may be fixed or worked around in the future.
+*	Embedded fonts are currently lost due to a Calibre limitation.
+
+*   `background-image`s in EPUB3 files are currently lost <a href="https://bugs.launchpad.net/calibre/+bug/1999956">due to a Calibre limitation</a>.
 
 ## Alternatives which don't quite solve the same problem
 
-* Convert to .epub if necessary and extract as a ZIP
-	* You'll get one XHTML file per chapter.
-* <a href="https://manual.calibre-ebook.com/server.html">The calibre Content server</a>
+*   Convert to .epub if necessary and extract as a ZIP
+	*   You'll get one XHTML file per chapter.
+*   <a href="https://manual.calibre-ebook.com/server.html">The calibre Content server</a>
 
 
 ## `--help`

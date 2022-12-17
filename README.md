@@ -22,6 +22,7 @@ unbook --replace-serif-and-sans-serif always # replace typeface even when the bo
 unbook --help
 ```
 
+
 ## Use cases
 
 *	Read entire books in your browser because you like it or because it provides functionality not available in e-readers or ebook software
@@ -30,6 +31,7 @@ unbook --help
 *	Share a book with someone who has a browser but no e-reader or ebook software
 *	Link someone to a passage in a book using your browser's "Copy link to highlight" feature
 *	Text-index books with software that supports HTML but not ebook formats
+
 
 ## Limitations
 
@@ -46,6 +48,7 @@ unbook --help
 *	Embedded fonts are currently lost due to a Calibre limitation.
 
 *   `background-image`s in EPUB3 files are currently lost <a href="https://bugs.launchpad.net/calibre/+bug/1999956">due to a Calibre limitation</a>.
+
 
 ## Alternatives which don't quite solve the same problem
 

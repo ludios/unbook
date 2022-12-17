@@ -33,7 +33,7 @@ unbook --help
 
 ## Limitations
 
-*	unbook produces a long HTML file without any fancy reader features. It does not save your reading position (your browser may succeed at this sometimes), nor provide text adjustments (instead, re-run unbook with the settings you like).
+*	unbook produces a long HTML file without a chapter browser or fancy reader features. It does not save your reading position (your browser may succeed at this sometimes), nor provide text adjustments (instead, re-run unbook with the settings you like).
 
 *	Some ebooks, mostly those with a large number of images, become too large when converted. These may just be unsuitable for conversion to a single HTML file.
 

@@ -1,7 +1,6 @@
 use clap::{Parser, ValueEnum};
 use mimalloc::MiMalloc;
 use std::collections::HashSet;
-use std::os::unix::prelude::MetadataExt;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
@@ -324,7 +323,7 @@ fn main() -> Result<()> {
     let ebook_file_size = {
         let ebook_file = fs::File::open(&ebook_path)?;
         let metadata = File::metadata(&ebook_file)?;
-        metadata.size()
+        metadata.len()
     };
     let calibre_output = Command::new(ebook_convert)
         .env_clear()

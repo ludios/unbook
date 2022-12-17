@@ -6,7 +6,7 @@ unbook is a command-line program for converting a DRM-free .epub, .mobi, .azw, .
 
 <!--Sample output (processing [this input file]). Compare with [Calibre's HTMLZ output] (which unbook uses and postprocesses).-->
 
-To use unbook: install Calibre, install a stable Rust compiler via rustup, then:
+To use unbook: install <a href="https://calibre-ebook.com/">Calibre</a>, install a stable Rust compiler via <a href="https://rustup.rs/">rustup</a>, then:
 
 ```bash
 cargo install --git https://github.com/ludios/unbook

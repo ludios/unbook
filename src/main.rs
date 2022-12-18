@@ -97,7 +97,7 @@ struct ConvertCommand {
     min_font_size: String,
 
     /// The max-width (with a CSS unit) to use for the book text
-    #[clap(long, default_value = "5.5in")]
+    #[clap(long, default_value = "5in")]
     max_width: String,
 
     /// The minimum line-height (with an optional CSS unit) to use for the book text

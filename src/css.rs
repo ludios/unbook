@@ -83,8 +83,8 @@ pub(crate) fn top_css(
     min_line_height: &str,
     inside_margin_when_wide: &str,
     inside_margin_when_narrow: &str,
-    outside_bgcolor: &Option<String>,
-    inside_bgcolor: &Option<String>,
+    outside_bgcolor: &str,
+    inside_bgcolor: &str,
 ) -> String {
     let FontReplacementOptions {
         min_font_size,
@@ -93,8 +93,6 @@ pub(crate) fn top_css(
         monospace_font_family,
         ..
     } = fro;
-    let outside_bgcolor = outside_bgcolor.clone().unwrap_or("unset".to_string());
-    let inside_bgcolor = inside_bgcolor.clone().unwrap_or("unset".to_string());
     formatdoc!("
         /* unbook */
 

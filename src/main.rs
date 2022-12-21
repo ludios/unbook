@@ -116,15 +116,15 @@ struct ConvertCommand {
     #[clap(long, default_value = "16px")]
     inside_margin_when_narrow: String,
 
-    /// background color (any CSS color) to use on the outside margin of the book,
-    /// i.e. the <html> where there is no text. You can set this to make things less
-    /// blindingly white.
-    #[clap(long)]
-    outside_bgcolor: Option<String>,
+    /// Background color (any CSS color) to use on the outside margin of the book,
+    /// i.e. the <html> where there is no text. Use "unset" for no color.
+    #[clap(long, default_value = "#888")]
+    outside_bgcolor: String,
 
-    /// background color (any CSS color) to use for the text of the book, i.e. the <body>
-    #[clap(long)]
-    inside_bgcolor: Option<String>,
+    /// Background color (any CSS color) to use for the text of the book, i.e. the <body>.
+    /// Use "unset" for no color.
+    #[clap(long, default_value = "#e9e9e9")]
+    inside_bgcolor: String,
 
     /// Additional HTML to append to <head> in the output HTML
     #[clap(long, default_value = "")]

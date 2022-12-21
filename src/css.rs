@@ -223,7 +223,9 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // paragraphs tend to have "para*" classes. Having small extra margins between
     // paragraphs is typographically incorrect and low risk to fix, because e.g.
     // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
-    let css = if ruleset.selectors.contains(".para") {
+    let selectors = &ruleset.selectors;
+    let probably_a_paragraph = selectors == ".indent" || selectors == ".noindent" || selectors.contains(".para");
+    let css = if probably_a_paragraph {
         static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$");
         let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
         css
@@ -231,7 +233,7 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
         css
     };
     // The same for margin-top.
-    let css = if ruleset.selectors.contains(".para") {
+    let css = if probably_a_paragraph {
         static PARA_MARGIN_TOP: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[12]em|[12]px|[12]pt);?$");
         let css = PARA_MARGIN_TOP.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
         css
@@ -516,6 +518,12 @@ pub(crate) mod tests {
             .something {
                 margin-bottom: 0.2em;
             }
+            .indent {
+                margin-bottom: 0.1em
+            }
+            .noindent {
+                margin-top: 1pt
+            }
             .para {
                 margin-top: 1px;
                 margin-bottom: 1px;
@@ -535,6 +543,12 @@ pub(crate) mod tests {
             }
             .something {
                 margin-bottom: 0.2em;
+            }
+            .indent {
+                margin-bottom: 0; /* was margin-bottom: 0.1em; */ /* unbook */
+            }
+            .noindent {
+                margin-top: 0; /* was margin-top: 1pt; */ /* unbook */
             }
             .para {
                 margin-top: 0; /* was margin-top: 1px; */ /* unbook */

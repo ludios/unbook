@@ -658,9 +658,10 @@ fn main() -> Result<()> {
         // TODO: use fs::File::create_new once stable
         create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
     };
-    let html_head = b"<html><head>";
-    output_file.write_all(html_head)?;
+    // Add a doctype because there probably isn't any reason for us to be in quirks mode
+    output_file.write_all(b"<!DOCTYPE html>\n<html><head>")?;
     output_file.write_all(extra_head.as_bytes())?;
+    let html_head = b"<html><head>";
     assert!(output.starts_with(html_head));
     output_file.write_all(&output[html_head.len()..])?;
 

@@ -77,7 +77,13 @@ pub(crate) fn get_all_font_stacks(css: &str) -> Vec<String> {
     out
 }
 
-pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_height: &str) -> String {
+pub(crate) fn top_css(
+    fro: &FontReplacementOptions,
+    max_width: &str,
+    min_line_height: &str,
+    outside_bgcolor: &Option<String>,
+    inside_bgcolor: &Option<String>,
+) -> String {
     let FontReplacementOptions {
         min_font_size,
         base_font_size,
@@ -85,6 +91,8 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
         monospace_font_family,
         ..
     } = fro;
+    let outside_bgcolor = outside_bgcolor.clone().unwrap_or("unset".to_string());
+    let inside_bgcolor = inside_bgcolor.clone().unwrap_or("unset".to_string());
     formatdoc!("
         /* unbook */
 
@@ -94,9 +102,16 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
             --monospace-font-family: {monospace_font_family};
             --min-font-size: {min_font_size};
             --min-line-height: {min_line_height};
+            --outside-bgcolor: {outside_bgcolor};
+            --inside-bgcolor: {inside_bgcolor};
+        }}
+
+        html {{
+            background-color: var(--outside-bgcolor);
         }}
 
         body {{
+            background-color: var(--inside-bgcolor);
             max-width: {max_width};
             margin: 0 auto;
             padding: 16px;

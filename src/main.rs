@@ -106,6 +106,16 @@ struct ConvertCommand {
     #[clap(long, default_value = "1.53333333")]
     min_line_height: String,
 
+    /// background color (any CSS color) to use on the outside margin of the book,
+    /// i.e. the <html> where there is no text. You can set this to make things less
+    /// blindingly white.
+    #[clap(long)]
+    outside_bgcolor: Option<String>,
+
+    /// background color (any CSS color) to use for the text of the book, i.e. the <body>
+    #[clap(long)]
+    inside_bgcolor: Option<String>,
+
     /// Additional HTML to append to <head> in the output HTML
     #[clap(long, default_value = "")]
     append_head: String,
@@ -271,6 +281,8 @@ fn main() -> Result<()> {
         min_font_size,
         max_width,
         min_line_height,
+        outside_bgcolor,
+        inside_bgcolor,
         append_head,
         ebook_convert,
         keep_temporary_htmlz,
@@ -500,6 +512,8 @@ fn main() -> Result<()> {
             &fro,
             &max_width,
             &min_line_height,
+            &outside_bgcolor,
+            &inside_bgcolor,
         );
         let (unread_files_count, unread_files_text) = {
             let zip = zip_arc.lock().unwrap();

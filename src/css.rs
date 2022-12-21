@@ -3,6 +3,7 @@ use std::{collections::{HashMap, HashSet}, borrow::Cow};
 use clap::ValueEnum;
 use indoc::formatdoc;
 use regex::Regex;
+use once_cell::sync::Lazy;
 use crate::font::{classify_font_family, GenericFontFamily};
 
 #[derive(ValueEnum, Copy, Clone, Debug)]
@@ -34,12 +35,26 @@ impl ToString for Ruleset {
     }
 }
 
+// Copied from https://github.com/qryxip/snowchains/blob/dcd76c1dbb87eea239ba17f28b44ee11fdd3fd80/src/macros.rs
+
+/// Return a Lazy<Regex> for the given regexp string
+macro_rules! lazy_regex {
+    ($expr:expr) => {{
+        static REGEX: ::once_cell::sync::Lazy<::regex::Regex> =
+            ::once_cell::sync::Lazy::new(|| ::regex::Regex::new($expr).unwrap());
+        &REGEX
+    }};
+    ($expr:expr,) => {
+        lazy_regex!($expr)
+    };
+}
+
 /// Lightly parse only the CSS that Calibre might emit, just enough so that
 /// we know which selectors each block is for.
 pub(crate) fn get_css_rulesets(css: &str) -> Vec<Ruleset> {
     // TODO: use a real parser, perhaps
-    let rulesets = Regex::new(r"(?m)^(?P<selectors>[^{]+)\s*\{(?P<declaration_block>[^}]*)\}").unwrap();
-    rulesets
+    static RULESETS: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<selectors>[^{]+)\s*\{(?P<declaration_block>[^}]*)\}");
+    RULESETS
         .captures_iter(css)
         .map(|m| Ruleset {
             selectors: m["selectors"].trim().to_string(),
@@ -54,8 +69,8 @@ pub(crate) fn get_all_font_stacks(css: &str) -> Vec<String> {
         if ruleset.selectors == "@font-face" {
             continue;
         }
-        let font_family = Regex::new(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$").unwrap();
-        for m in font_family.captures_iter(&ruleset.declaration_block) {
+        static FONT_FAMILY: &Lazy<Regex> = lazy_regex!(r"(?m)^(?:\s*)font-family:\s*(?P<stack>[^;]+?);?$");
+        for m in FONT_FAMILY.captures_iter(&ruleset.declaration_block) {
             out.push(m["stack"].to_string());
         }
     }
@@ -188,12 +203,12 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // Replace line-height overrides so that they are not smaller that our
     // minimum. A minimum line height aids in reading by reducing the chance
     // of regressing to an already-read line.
-    let line_height = Regex::new(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$").unwrap();
-    let css = line_height.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook */");
+    static LINE_HEIGHT: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)line-height:\s*(?P<height>[^;]+?);?$");
+    let css = LINE_HEIGHT.replace_all(css, "${indent}line-height: max($height, var(--min-line-height)); /* unbook */");
 
     // Text that is too small either causes eye strain or becomes completely unreadable.
-    let font_size = Regex::new(r"(?m)^(?P<indent>\s*)font-size:\s*(?P<size>[^;]+?);?$").unwrap();
-    let css = font_size.replace_all(&css, "${indent}font-size: max($size, var(--min-font-size)); /* unbook */");
+    static FONT_SIZE: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)font-size:\s*(?P<size>[^;]+?);?$");
+    let css = FONT_SIZE.replace_all(&css, "${indent}font-size: max($size, var(--min-font-size)); /* unbook */");
 
     // Justifying text to both the left and right edge creates uneven spacing
     // between words and impairs reading speed. It is also a lost cause on
@@ -201,24 +216,24 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // rationale and a demonstration, see _An Essay on Typography_,
     // Chapter 6 'The Procrustean Bed', pp. 88-93.
     // https://monoskop.org/images/8/8d/Gill_Eric_An_Essay_on_Typography.pdf#page=94
-    let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
-    let css = text_align_justify.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
+    static TEXT_ALIGN_JUSTIFY: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$");
+    let css = TEXT_ALIGN_JUSTIFY.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
 
     // Some books have a margin-bottom: 0.2em or similar on paragraphs, and these
     // paragraphs tend to have "para*" classes. Having small extra margins between
     // paragraphs is typographically incorrect and low risk to fix, because e.g.
     // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
     let css = if ruleset.selectors.contains(".para") {
-        let para_margin_bottom = Regex::new(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$").unwrap();
-        let css = para_margin_bottom.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
+        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$");
+        let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
         css
     } else {
         css
     };
     // The same for margin-top.
     let css = if ruleset.selectors.contains(".para") {
-        let para_margin_top = Regex::new(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[12]em|[12]px|[12]pt);?$").unwrap();
-        let css = para_margin_top.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
+        static PARA_MARGIN_TOP: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[12]em|[12]px|[12]pt);?$");
+        let css = PARA_MARGIN_TOP.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
         css
     } else {
         css
@@ -226,10 +241,10 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
 
     // Some books have <sup>-like citations except they're not a <sup> tag; detect
     // them by their `vertical-align: super` and apply the same fix we have for <sup>
-    let vertical_align_super = Regex::new(r"(?m)^(?P<indent>\s*)vertical-align:\s*super;?$").unwrap();
+    static VERTICAL_ALIGN_SUPER: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)vertical-align:\s*super;?$");
     // We can't use ${indent} more than once (it's empty the second and third time?),
-    // we just hardcode an indent :(
-    let css = vertical_align_super.replace_all(&css, "\
+    // so just hardcode an indent :(
+    let css = VERTICAL_ALIGN_SUPER.replace_all(&css, "\
         ${indent}vertical-align: baseline; /* was vertical-align: super; */ /* unbook */\n\
         \x20\x20\x20\x20position: relative; /* unbook */\n\
         \x20\x20\x20\x20top: -0.4em; /* unbook */");

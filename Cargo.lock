@@ -991,6 +991,7 @@ dependencies = [
  "lol_html",
  "mimalloc",
  "mobi",
+ "once_cell",
  "regex",
  "roxmltree",
  "tracing",

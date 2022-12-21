@@ -37,20 +37,20 @@ unbook --help
 
 *   Inline the stylesheet, inline all images using `data:` URIs
 *   Attach the book cover to the top of the HTML
-*   Attach `metadata.opf` and the Calibre conversion log inside its `<!-- comment -->` header
+*   Attach `metadata.opf` and the Calibre conversion log to the HTML in a comment
 *   Add `<meta name="viewport" content="width=device-width" />` for reading on mobile
 *   Add `<meta name="referrer" content="no-referrer" />`
 *   Add `<meta http-equiv="Content-Security-Policy" ...>` to block external scripts and resources from loading
 *   Add <a href="https://github.com/GoogleChromeLabs/text-fragments-polyfill">Text Fragments Polyfill</a> so that `#:~:text=` links work for Firefox and Safari < 16.1 users
 *   Adjust some CSS
-    *   Set a body `max-width` to prevent overly long lines
-    *   Adjust the base font size
-    *   Set a base `font-family`
-    *   Set a minimum font size
-    *   Set a minimum line height
+    *   Set a body `max-width` to avoid overly long lines (default: `5in`)
+    *   Adjust the base font size (default: `15px`)
+    *   Set a base `font-family` (default: `sans-serif`)
+    *   Set a minimum font size (default: `13px`)
+    *   Set a minimum line height (default: `1.53333333`)
     *   Prevent &lt;sup&gt; and &lt;sup&gt;-like elements from increasing the line-height
-    *   Remove some incorrect margins between paragraphs that create an inconsistent line-height
-*   When a book uses just one `font-family` for serif and sans-serif, replace these `font-family` with the base `font-family`.
+    *   Remove small top and bottom margins from some paragraphs
+*   When a book uses just one distinct `font-family` within the generic font families of serif and sans-serif, replace these `font-family` with the base `font-family`.
 
 
 ## Limitations

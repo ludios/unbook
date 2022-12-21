@@ -334,8 +334,19 @@ fn main() -> Result<()> {
 
     let mut command = Command::new(ebook_convert);
     command.env_clear();
-    // We need -vv for calibre to output its version
-    command.args([&ebook_path, &output_htmlz, &PathBuf::from("-vv")]);
+    command.args([
+        &ebook_path,
+        &output_htmlz,
+        // We need -vv for calibre to output its version
+        &PathBuf::from("-vv"),
+        // We have our own padding/margin and don't need Calibre's extra 5pt margin
+        &PathBuf::from("--margin-top=0"),
+        &PathBuf::from("--margin-bottom=0"),
+        &PathBuf::from("--margin-left=0"),
+        &PathBuf::from("--margin-right=0"),
+        // We have our own minimum line-height implemented with a CSS variable
+        &PathBuf::from("--minimum-line-height=0"),
+    ]);
     // Just .env_clear() is fine on Linux, but Python on Windows requires at least SystemRoot
     // to be present to avoid this:
     //

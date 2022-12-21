@@ -112,7 +112,8 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
              * https://css-tricks.com/snippets/css/prevent-superscripts-and-subscripts-from-affecting-line-height/
              * instead.
              */
-            vertical-align: baseline;
+            /* !important because books often put a vertical-align: 0.55em or similar on <sup> elements */
+            vertical-align: baseline !important;
             position: relative;
             top: -0.4em;
         }}

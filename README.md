@@ -4,6 +4,6 @@ can read in any browser. unbook functions as a frontend for Calibre's HTMLZ
 functionality and performs some CSS repair to make things easier to read.
 
 For more information, please see
-<big><big><a href="https://unbook.ludios.org/">unbook.ludios.org</a></big></big>
+<h1><a href="https://unbook.ludios.org/">unbook.ludios.org</a></h1>
 
 (please link there instead of GitHub.)

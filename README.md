@@ -43,12 +43,13 @@ unbook --help
 *   Add `<meta http-equiv="Content-Security-Policy" ...>` to block external scripts and resources from loading
 *   Add <a href="https://github.com/GoogleChromeLabs/text-fragments-polyfill">Text Fragments Polyfill</a> so that `#:~:text=` links work for Firefox and Safari < 16.1 users
 *   Adjust some CSS
-    *   Set a body `max-width`
+    *   Set a body `max-width` to prevent overly long lines
     *   Adjust the base font size
     *   Set a base `font-family`
     *   Set a minimum font size
     *   Set a minimum line height
-    *   Reset incorrect `bottom-margin: 0.2em` to `0` on `.para-` styles
+    *   Prevent &lt;sup&gt; and &lt;sup&gt;-like elements from increasing the line-height
+    *   Remove some incorrect margins between paragraphs that create an inconsistent line-height
 *   When a book uses just one `font-family` for serif and sans-serif, replace these `font-family` with the base `font-family`.
 
 

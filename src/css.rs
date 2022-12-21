@@ -102,12 +102,22 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
             word-break: break-word;
         }}
 
-        sup {{
+        sup, sub {{
             /* <sup> defaults to `vertical-align: super` styling, which causes the containing
-             * line to be heightened in an ugly way, unless we reduce the <sup>'s line-height
-             * from the e.g. 1.5 we have on everything.  https://stackoverflow.com/a/6594576
+             * line to be heightened in an ugly way. https://stackoverflow.com/a/6594576 says
+             * to reduce the <sup>'s line-height, but setting 1.0 is not enough to fix it; 0
+             * works but seems risky in case anyone has a multi-line <sup>; 0.9 may be enough
+             * for most books, but is somewhat arbitrary and might similarly cause readability
+             * problems. We use the fix from
+             * https://css-tricks.com/snippets/css/prevent-superscripts-and-subscripts-from-affecting-line-height/
+             * instead.
              */
-            line-height: 1;
+            vertical-align: baseline;
+            position: relative;
+            top: -0.4em;
+        }}
+        sub {{
+            top: 0.4em;
         }}
 
         img {{
@@ -204,6 +214,16 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     } else {
         css
     };
+
+    // Some books have <sup>-like citations except they're not a <sup> tag; detect
+    // them by their `vertical-align: super` and apply the same fix we have for <sup>
+    let vertical_align_super = Regex::new(r"(?m)^(?P<indent>\s*)vertical-align:\s*super;?$").unwrap();
+    // We can't use ${indent} more than once (it's empty the second and third time?),
+    // we just hardcode an indent :(
+    let css = vertical_align_super.replace_all(&css, "\
+        ${indent}vertical-align: baseline; /* was vertical-align: super; */ /* unbook */\n\
+        \x20\x20\x20\x20position: relative; /* unbook */\n\
+        \x20\x20\x20\x20top: -0.4em; /* unbook */");
 
     // Replace serif and sans-serif typefaces according to the user's preferences.
     // Authors and publishers sometimes want an ebook to use a certain typeface, but
@@ -483,6 +503,31 @@ pub(crate) mod tests {
             }
             .something {
                 margin-bottom: 0.2em;
+            }
+        ");
+
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+    }
+
+    #[test]
+    fn test_fix_sup_like() {
+        let input = indoc!("
+            .calibre8 {
+                vertical-align: super;
+            }
+            .someting {
+                vertical-align: top;
+            }
+        ");
+
+        let output = indoc!("
+            .calibre8 {
+                vertical-align: baseline; /* was vertical-align: super; */ /* unbook */
+                position: relative; /* unbook */
+                top: -0.4em; /* unbook */
+            }
+            .someting {
+                vertical-align: top;
             }
         ");
 

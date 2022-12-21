@@ -320,7 +320,7 @@ fn main() -> Result<()> {
         _ = ebook_file.read(&mut buf)?;
         buf
     };
-    if first_4k.starts_with(b"<html><head><!--\n\tebook converted to HTML with unbook ") {
+    if first_4k.starts_with(b"<!DOCTYPE html>\n<html><head><!--\n\tebook converted to HTML with unbook ") {
         bail!("input file {ebook_path:?} was produced by unbook, refusing to convert it");
     }
     if infer::archive::is_pdf(&first_4k) {
@@ -656,6 +656,7 @@ fn main() -> Result<()> {
         create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
     };
     // Add a doctype because there probably isn't any reason for us to be in quirks mode
+    // If you change the header: YOU MUST ALSO UPDATE first_4k.starts_with above
     output_file.write_all(b"<!DOCTYPE html>\n<html><head>")?;
     output_file.write_all(extra_head.as_bytes())?;
     let html_head = b"<html><head>";

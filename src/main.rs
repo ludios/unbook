@@ -104,6 +104,10 @@ struct ConvertCommand {
     #[clap(long, default_value = "1.5")]
     min_line_height: String,
 
+    /// Additional HTML to append to <head> in the output HTML
+    #[clap(long, default_value = "")]
+    append_head: String,
+
     /// Path to the Calibre "ebook-convert" executable to use
     #[clap(long, default_value = "ebook-convert")]
     ebook_convert: String,
@@ -265,6 +269,7 @@ fn main() -> Result<()> {
         min_font_size,
         max_width,
         min_line_height,
+        append_head,
         ebook_convert,
         keep_temporary_htmlz,
         text_fragments_polyfill,
@@ -600,6 +605,7 @@ fn main() -> Result<()> {
             {fixed_css}
             </style>
             {text_fragments_polyfill}
+            {append_head}
         ")
     };
 

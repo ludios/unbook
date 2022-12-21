@@ -2,6 +2,7 @@
 name = "unbook"
 version = "0.6.3"
 edition = "2021"
+license = "CC0-1.0"
 
 [dependencies]
 anyhow = "1"

@@ -101,7 +101,9 @@ struct ConvertCommand {
     max_width: String,
 
     /// The minimum line-height (with an optional CSS unit) to use for the book text
-    #[clap(long, default_value = "1.5")]
+    // 1.5 is bad with a font size of 15px because 15 * 1.5 = 22.5,
+    // which creates irregular line heights.
+    #[clap(long, default_value = "1.53333333")]
     min_line_height: String,
 
     /// Additional HTML to append to <head> in the output HTML

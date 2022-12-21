@@ -36,7 +36,7 @@ enum TextFragmentsPolyfill {
 
 #[derive(Parser, Debug)]
 #[clap(name = "unbook", version)]
-/// Convert an ebook to a single HTML file
+/// Convert an ebook to a self-contained HTML file
 struct ConvertCommand {
     /// The path to an .{epub,mobi,azw,azw3,lit,chm} file, or other format that Calibre
     /// can reasonably convert to HTMLZ. See https://manual.calibre-ebook.com/faq.html
@@ -48,7 +48,7 @@ struct ConvertCommand {
     #[clap(long, short = 'o')]
     output_path: Option<PathBuf>,
 
-    /// Whether to remove the ebook extension before appending ".html".
+    /// Remove the ebook extension before appending ".html".
     /// 
     /// This is not the default because it makes it harder to find the original
     /// ebook file when viewing the .html, and because you may have e.g. both .mobi
@@ -56,7 +56,7 @@ struct ConvertCommand {
     #[clap(long, short = 'e')]
     remove_ebook_ext: bool,
 
-    /// Whether to replace the output .html file if it already exists.
+    /// Replace the output .html file if it already exists.
     #[clap(long, short = 'f')]
     force: bool,
 
@@ -78,16 +78,13 @@ struct ConvertCommand {
     #[clap(long, default_value = "monospace")]
     monospace_font_family: String,
 
-    /// Whether to replace `font-family` for all font stacks indicating serif or sans-serif
-    /// fonts, with the base font family. The default "if-one" does this only when there is
-    /// just one distinct font stack. This performs the font replacement only when there is
-    /// no chance that distinct fonts are used to indicate something in the book.
+    /// Font stack replacement mode for serif + sans-serif font stacks, treated as one set.
+    /// The default mode "if-one" replaces fonts when there is just one distinct font stack.
     #[clap(long, default_value = "if-one")]
     replace_serif_and_sans_serif: css::FontFamilyReplacementMode,
 
-    /// Whether to replace `font-family` for all font stacks indicating monospace fonts,
-    /// with the monospace font family. The default "if-one" does this only when there is
-    /// just one distinct font stack.
+    /// Font stack replacement mode for monospace font stacks.
+    /// The default mode "if-one" replaces fonts when there is just one distinct font stack.
     #[clap(long, default_value = "if-one")]
     replace_monospace: css::FontFamilyReplacementMode,
 
@@ -106,13 +103,13 @@ struct ConvertCommand {
     #[clap(long, default_value = "1.53333333")]
     min_line_height: String,
 
-    /// The CSS distance from the left edge of text and the outside margin,
-    /// when the viewport is wide enough to show any outside margin.
+    /// The CSS size of the inside margin for book text, when the viewport is wide
+    /// enough to show the outside margin.
     #[clap(long, default_value = "32px")]
     inside_margin_when_wide: String,
 
-    /// The CSS distance from the left edge of text and the outside margin,
-    /// when the viewport is not wide enough to show any outside margin.
+    /// The CSS size of the inside margin for book text, when the viewport is not
+    /// wide enough to show the outside margin.
     #[clap(long, default_value = "16px")]
     inside_margin_when_narrow: String,
 
@@ -134,7 +131,7 @@ struct ConvertCommand {
     #[clap(long, default_value = "ebook-convert")]
     ebook_convert: String,
 
-    /// Whether to keep the temporary HTMLZ for debugging purposes
+    /// Keep the temporary HTMLZ for debugging purposes
     #[clap(long)]
     keep_temporary_htmlz: bool,
 

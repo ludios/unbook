@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cargo about generate about.hbs > THIRDPARTY.html

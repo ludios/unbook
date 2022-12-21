@@ -185,6 +185,18 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
     let css = text_align_justify.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
 
+    // Some books have a margin-bottom: 0.2em on paragraphs, and these paragraphs
+    // tend to have "para-" classes. Having small extra margins between paragraphs
+    // is typographically incorrect and low risk to fix, because 0.2em is close
+    // enough to 0 that we're unlikely to cause semantic damage.
+    let css = if ruleset.selectors.contains(".para-") {
+        let para_margin_bottom = Regex::new(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.2em);?$").unwrap();
+        let css = para_margin_bottom.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
+        css
+    } else {
+        css
+    };
+
     // Replace serif and sans-serif typefaces according to the user's preferences.
     // Authors and publishers sometimes want an ebook to use a certain typeface, but
     // the user's familiarity with their default sans-serif font (or other chosen
@@ -434,6 +446,35 @@ pub(crate) mod tests {
             }
             .something-else {
                 font-size: max(14pt, var(--min-font-size)); /* unbook */
+            }
+        ");
+
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+    }
+
+    #[test]
+    fn test_fix_para_margin_bottom() {
+        let input = indoc!("
+            .para-p1 {
+                margin-bottom: 0.5em
+            }
+            .para-p2 {
+                margin-bottom: 0.2em
+            }
+            .something {
+                margin-bottom: 0.2em;
+            }
+        ");
+
+        let output = indoc!("
+            .para-p1 {
+                margin-bottom: 0.5em
+            }
+            .para-p2 {
+                margin-bottom: 0; /* was margin-bottom: 0.2em; */ /* unbook */
+            }
+            .something {
+                margin-bottom: 0.2em;
             }
         ");
 

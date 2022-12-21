@@ -102,6 +102,14 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
             word-break: break-word;
         }}
 
+        sup {{
+            /* <sup> defaults to `vertical-align: super` styling, which causes the containing
+             * line to be heightened in an ugly way, unless we reduce the <sup>'s line-height
+             * from the e.g. 1.5 we have on everything.  https://stackoverflow.com/a/6594576
+             */
+            line-height: 1;
+        }}
+
         img {{
             /* We don't want to let images widen the page, especially on mobile.
              *

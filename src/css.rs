@@ -203,13 +203,21 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     let text_align_justify = Regex::new(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$").unwrap();
     let css = text_align_justify.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
 
-    // Some books have a margin-bottom: 0.2em on paragraphs, and these paragraphs
-    // tend to have "para-" classes. Having small extra margins between paragraphs
-    // is typographically incorrect and low risk to fix, because 0.2em is close
-    // enough to 0 that we're unlikely to cause semantic damage.
-    let css = if ruleset.selectors.contains(".para-") {
-        let para_margin_bottom = Regex::new(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.2em);?$").unwrap();
+    // Some books have a margin-bottom: 0.2em or similar on paragraphs, and these
+    // paragraphs tend to have "para*" classes. Having small extra margins between
+    // paragraphs is typographically incorrect and low risk to fix, because e.g.
+    // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
+    let css = if ruleset.selectors.contains(".para") {
+        let para_margin_bottom = Regex::new(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$").unwrap();
         let css = para_margin_bottom.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
+        css
+    } else {
+        css
+    };
+    // The same for margin-top.
+    let css = if ruleset.selectors.contains(".para") {
+        let para_margin_top = Regex::new(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[12]em|[12]px|[12]pt);?$").unwrap();
+        let css = para_margin_top.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
         css
     } else {
         css
@@ -492,6 +500,14 @@ pub(crate) mod tests {
             .something {
                 margin-bottom: 0.2em;
             }
+            .para {
+                margin-top: 1px;
+                margin-bottom: 1px;
+                margin-top: 2px;
+                margin-bottom: 2px;
+                margin-top: 3px;
+                margin-bottom: 3px;
+            }
         ");
 
         let output = indoc!("
@@ -503,6 +519,14 @@ pub(crate) mod tests {
             }
             .something {
                 margin-bottom: 0.2em;
+            }
+            .para {
+                margin-top: 0; /* was margin-top: 1px; */ /* unbook */
+                margin-bottom: 0; /* was margin-bottom: 1px; */ /* unbook */
+                margin-top: 0; /* was margin-top: 2px; */ /* unbook */
+                margin-bottom: 0; /* was margin-bottom: 2px; */ /* unbook */
+                margin-top: 3px;
+                margin-bottom: 3px;
             }
         ");
 

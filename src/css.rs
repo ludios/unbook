@@ -163,7 +163,9 @@ fn replace_font_stacks<'a>(css: &'a str, stacks: &[&str], replacement: &str) -> 
 }
 
 /// Fix just one declaration block (no selector)
-pub(crate) fn fix_css_declaration_block(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
+pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> Ruleset {
+    let css = &ruleset.declaration_block;
+
     // Replace line-height overrides so that they are not smaller that our
     // minimum. A minimum line height aids in reading by reducing the chance
     // of regressing to an already-read line.
@@ -239,8 +241,8 @@ pub(crate) fn fix_css_declaration_block(css: &str, fro: &FontReplacementOptions,
             }
         }
     };
-    
-    css.to_string()
+
+    Ruleset { selectors: ruleset.selectors.clone(), declaration_block: css.to_string() }
 }
 
 pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
@@ -254,9 +256,8 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             // font apparent.
             out.push_str(&ruleset.to_string());
         } else {
-            let fixed_block = fix_css_declaration_block(&ruleset.declaration_block, fro, family_map);
-            let ruleset = Ruleset { selectors: ruleset.selectors, declaration_block: fixed_block };
-            out.push_str(&ruleset.to_string());
+            let fixed_ruleset = fix_css_ruleset(&ruleset, fro, family_map);
+            out.push_str(&fixed_ruleset.to_string());
         }
     }
 

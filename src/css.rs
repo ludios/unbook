@@ -84,7 +84,7 @@ pub(crate) fn top_css(fro: &FontReplacementOptions, max_width: &str, min_line_he
         body {{
             max-width: {max_width};
             margin: 0 auto;
-            padding: 1em;
+            padding: 16px;
 
             line-height: var(--min-line-height);
 

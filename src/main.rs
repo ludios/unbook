@@ -106,6 +106,16 @@ struct ConvertCommand {
     #[clap(long, default_value = "1.53333333")]
     min_line_height: String,
 
+    /// The CSS distance from the left edge of text and the outside margin,
+    /// when the viewport is wide enough to show any outside margin.
+    #[clap(long, default_value = "32px")]
+    inside_margin_when_wide: String,
+
+    /// The CSS distance from the left edge of text and the outside margin,
+    /// when the viewport is not wide enough to show any outside margin.
+    #[clap(long, default_value = "16px")]
+    inside_margin_when_narrow: String,
+
     /// background color (any CSS color) to use on the outside margin of the book,
     /// i.e. the <html> where there is no text. You can set this to make things less
     /// blindingly white.
@@ -281,6 +291,8 @@ fn main() -> Result<()> {
         min_font_size,
         max_width,
         min_line_height,
+        inside_margin_when_wide,
+        inside_margin_when_narrow,
         outside_bgcolor,
         inside_bgcolor,
         append_head,
@@ -512,6 +524,8 @@ fn main() -> Result<()> {
             &fro,
             &max_width,
             &min_line_height,
+            &inside_margin_when_wide,
+            &inside_margin_when_narrow,
             &outside_bgcolor,
             &inside_bgcolor,
         );
@@ -624,7 +638,9 @@ fn main() -> Result<()> {
             {calibre_log}
             -->
             {csp}
-            <meta name=\"viewport\" content=\"width=device-width\" />
+            <!-- viewport-fit=cover to prevent iOS Safari from applying the body background-color
+                 to the \"safe area\": https://css-tricks.com/the-notch-and-css/ -->
+            <meta name=\"viewport\" content=\"width=device-width, viewport-fit=cover\" />
             <meta name=\"referrer\" content=\"no-referrer\" />
             <style>
             {top_css}

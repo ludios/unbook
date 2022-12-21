@@ -81,6 +81,8 @@ pub(crate) fn top_css(
     fro: &FontReplacementOptions,
     max_width: &str,
     min_line_height: &str,
+    inside_margin_when_wide: &str,
+    inside_margin_when_narrow: &str,
     outside_bgcolor: &Option<String>,
     inside_bgcolor: &Option<String>,
 ) -> String {
@@ -102,6 +104,8 @@ pub(crate) fn top_css(
             --monospace-font-family: {monospace_font_family};
             --min-font-size: {min_font_size};
             --min-line-height: {min_line_height};
+            --inside-margin-when-wide: {inside_margin_when_wide};
+            --inside-margin-when-narrow: {inside_margin_when_narrow};
             --outside-bgcolor: {outside_bgcolor};
             --inside-bgcolor: {inside_bgcolor};
         }}
@@ -114,7 +118,7 @@ pub(crate) fn top_css(
             background-color: var(--inside-bgcolor);
             max-width: {max_width};
             margin: 0 auto;
-            padding: 16px;
+            padding: var(--inside-margin-when-narrow);
 
             line-height: var(--min-line-height);
 
@@ -130,6 +134,12 @@ pub(crate) fn top_css(
             /* Without word-break: break-word, iOS Safari 16.1 lets
              * very long words e.g. URLs widen the page */
             word-break: break-word;
+        }}
+
+        @media only screen and (min-width: calc({inside_margin_when_narrow} + {max_width} + {inside_margin_when_narrow})) {{
+            body {{
+                padding: var(--inside-margin-when-wide);
+            }}
         }}
 
         sup, sub {{

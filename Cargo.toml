@@ -1,6 +1,6 @@
 [package]
 name = "unbook"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 license = "CC0-1.0"
 

@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
-use color_eyre::eyre::{Result, eyre, bail, Context};
+use anyhow::{Result, anyhow, bail, Context};
 use std::env;
 use std::io::{self, Seek};
 use std::path::Path;
@@ -184,7 +184,7 @@ fn indent(indent: &str, text: &str) -> String {
 /// Return a `roxmltree::Document` for some XML string
 fn parse_xml(xml: &str) -> Result<Document<'_>> {
     let doc = Document::parse(xml)
-        .map_err(|_| eyre!("roxmltree could not parse XML: {:?}", xml))?;
+        .map_err(|_| anyhow!("roxmltree could not parse XML: {:?}", xml))?;
     Ok(doc)
 }
 
@@ -205,10 +205,10 @@ fn get_mime_type(filename: &str) -> Result<&'static str> {
     };
 
     let (_, ext) = filename.rsplit_once('.')
-        .ok_or_else(|| eyre!("no extension for src={filename}"))?;
+        .ok_or_else(|| anyhow!("no extension for src={filename}"))?;
     let ext = ext.to_ascii_lowercase();
     let mime_type = mime_types.get(&ext)
-        .ok_or_else(|| eyre!("no mimetype for extension {ext}"))?;
+        .ok_or_else(|| anyhow!("no mimetype for extension {ext}"))?;
     Ok(mime_type)
 }
 
@@ -397,19 +397,19 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
     let mut zip = ZipReadTracker::new(archive);
 
     let html = zip.get_content("index.html")?
-        .ok_or_else(|| eyre!("index.html not found in HTMLZ"))?;
+        .ok_or_else(|| anyhow!("index.html not found in HTMLZ"))?;
     if !html.starts_with(b"<html><head>") {
         bail!("index.html in HTMLZ does not start with <html><head>");
     }
 
     let calibre_css = String::from_utf8(
         zip.get_content("style.css")?
-        .ok_or_else(|| eyre!("style.css not found in HTMLZ"))?
+        .ok_or_else(|| anyhow!("style.css not found in HTMLZ"))?
     ).context("failed to parse style.css in HTMLZ as UTF-8")?;
 
     let metadata = String::from_utf8(
         zip.get_content("metadata.opf")?
-        .ok_or_else(|| eyre!("metadata.opf not found in HTMLZ"))?
+        .ok_or_else(|| anyhow!("metadata.opf not found in HTMLZ"))?
     ).context("failed to parse metadata.opf in HTMLZ as UTF-8")?;
     let metadata_doc = parse_xml(&metadata)
         .context("failed to parse metadata.opf in HTMLZ as XML")?;
@@ -419,7 +419,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
     if let Some(cover_fname) = &cover_fname {
         cover = Some(
             zip.get_content(cover_fname)?
-            .ok_or_else(|| eyre!("{cover_fname} not found in HTMLZ"))?
+            .ok_or_else(|| anyhow!("{cover_fname} not found in HTMLZ"))?
         );
     }
 
@@ -683,8 +683,6 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
 
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
-
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("warn"))
         .unwrap();

@@ -5,7 +5,7 @@ edition = "2021"
 license = "CC0-1.0"
 
 [dependencies]
-color-eyre = "0.6"
+anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 mimalloc = { version = "0.1", default-features = false } # Turn off the default secure mode
 log = "0.4"

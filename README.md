@@ -8,7 +8,9 @@ For more information, including installation and usage, please see
 
 (please link there instead of GitHub.)
 
-Please do report issues on GitHub, especially for things that prevent you
+<hr>
+
+Please *do* report issues on GitHub, especially for things that prevent you
 from using unbook at all.
 
 Security bugs can be reported like regular bugs.

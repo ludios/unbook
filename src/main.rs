@@ -371,7 +371,9 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
     //
     // Fatal Python error: _Py_HashRandomization_Init: failed to get random numbers to initialize Python
     // Python runtime state: preinitialized
-    for (name, value) in ["SystemDrive", "SystemRoot", "TEMP", "TMP"]
+    //
+    // On macOS, we need to retain PATH for the default "ebook-convert" to work.
+    for (name, value) in ["SystemDrive", "SystemRoot", "TEMP", "TMP", "PATH"]
         .iter()
         .filter_map(|name| env::var(name).ok().map(|value| (name, value)))
     {

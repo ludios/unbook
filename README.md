@@ -7,3 +7,8 @@ For more information, please see
 <h1><a href="https://unbook.ludios.org/">unbook.ludios.org</a></h1>
 
 (please link there instead of GitHub.)
+
+Please do report issues on GitHub, especially for things that prevent you
+from using unbook at all.
+
+Security bugs can be reported like regular bugs.

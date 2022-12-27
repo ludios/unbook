@@ -12,3 +12,6 @@ Please do report issues on GitHub, especially for things that prevent you
 from using unbook at all.
 
 Security bugs can be reported like regular bugs.
+
+If you distribute an unbook binary you've compiled, remember to include
+THIRDPARTY.html in your distribution.

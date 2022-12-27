@@ -1,6 +1,6 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: File/browser-specific issue
+about: Issues with particular files or browsers
 title: ''
 labels: ''
 assignees: ''

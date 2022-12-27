@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::{fs::{self, File}, io::{Write, Read}, collections::HashMap};
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail, Context};
 use std::env;
 use std::io::{self, Seek};
 use std::path::Path;
@@ -266,15 +266,7 @@ fn catch_unwind_silent<F: FnOnce() -> R + panic::UnwindSafe, R>(f: F) -> std::th
     result
 }
 
-fn main() -> Result<()> {
-    let env_filter = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("warn"))
-        .unwrap();
-    tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(env_filter)
-        .init();
-
+fn convert_file(command: ConvertCommand) -> Result<()> {
     let ConvertCommand {
         ebook_path,
         output_path,
@@ -296,7 +288,7 @@ fn main() -> Result<()> {
         ebook_convert,
         keep_temporary_htmlz,
         text_fragments_polyfill,
-    } = ConvertCommand::parse();
+    } = command;
 
     let output_path = match output_path {
         Some(p) => p,
@@ -312,12 +304,14 @@ fn main() -> Result<()> {
     };
     // If needed, bail out early before running ebook-convert
     if output_path.exists() && !force {
-        bail!("{:?} already exists", output_path);
+        bail!("output file {:?} already exists; use unbook -f if you want to overwrite", output_path);
     }
     let first_4k = {
         let mut buf = [0; 4096];
-        let mut ebook_file = fs::File::open(&ebook_path)?;
-        _ = ebook_file.read(&mut buf)?;
+        let mut ebook_file = fs::File::open(&ebook_path)
+            .context("failed to open input file; are the path and permissions correct?")?;
+        _ = ebook_file.read(&mut buf)
+            .context("failed to read input file")?;
         buf
     };
     if first_4k.starts_with(b"<!DOCTYPE html>\n<html><head><!--\n\tebook converted to HTML with unbook ") {
@@ -335,7 +329,7 @@ fn main() -> Result<()> {
                 for record in mobi.raw_records() {
                     if record.content.starts_with(b"%MOP") {
                         bail!("input file {ebook_path:?} is a MOBI with a PDF inside, \
-                            possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
+                               possibly an AZW4 Print Replica, refusing to create a poor HTML conversion");
                     }
                 }
             }
@@ -350,8 +344,10 @@ fn main() -> Result<()> {
         env::temp_dir().join(format!("unbook-{random}.htmlz"))
     };
     let ebook_file_size = {
-        let ebook_file = fs::File::open(&ebook_path)?;
-        let metadata = File::metadata(&ebook_file)?;
+        let ebook_file = fs::File::open(&ebook_path)
+            .context("failed to open input file; are the path and permissions correct?")?;
+        let metadata = File::metadata(&ebook_file)
+            .context("failed to get metadata for input file")?;
         metadata.len()
     };
 
@@ -381,17 +377,21 @@ fn main() -> Result<()> {
     {
         command.env(name, value);
     }
-    let calibre_output = command.output()?;
+    let calibre_output = command.output()
+        .context("failed to run Calibre ebook-convert: is a directory with ebook-convert \
+                  in your PATH? (see also \"--ebook-convert\" in unbook --help)")?;
     if !calibre_output.status.success() {
         let stderr = String::from_utf8_lossy(&calibre_output.stderr);
         match calibre_output.status.code() {
-            None => bail!("ebook-convert was terminated by a signal:\n\n{stderr}"),
+            None       => bail!("ebook-convert was terminated by a signal:\n\n{stderr}"),
             Some(code) => bail!("ebook-convert failed with exit status {code}:\n\n{stderr}"),
         };
     }
 
-    let htmlz_file = fs::File::open(&output_htmlz).unwrap();
-    let archive = zip::ZipArchive::new(htmlz_file)?;
+    let htmlz_file = fs::File::open(&output_htmlz)
+        .with_context(|| format!("ebook-convert succeeded, but the HTMLZ file at {output_htmlz:?} could not be opened"))?;
+    let archive = zip::ZipArchive::new(htmlz_file)
+        .with_context(|| format!("failed to read the HTMLZ file at {output_htmlz:?} or parse it as a ZIP file"))?;
     let filenames: Vec<&str> = archive.file_names().collect();
     debug!(filenames = ?filenames, "files inside htmlz");
     let mut zip = ZipReadTracker::new(archive);
@@ -399,17 +399,21 @@ fn main() -> Result<()> {
     let html = zip.get_content("index.html")?
         .ok_or_else(|| anyhow!("index.html not found in HTMLZ"))?;
     if !html.starts_with(b"<html><head>") {
-        bail!("index.html in {output_htmlz:?} does not start with <html><head>");
+        bail!("index.html in HTMLZ does not start with <html><head>");
     }
+
     let calibre_css = String::from_utf8(
         zip.get_content("style.css")?
         .ok_or_else(|| anyhow!("style.css not found in HTMLZ"))?
-    )?;
+    ).context("failed to parse style.css in HTMLZ as UTF-8")?;
+
     let metadata = String::from_utf8(
         zip.get_content("metadata.opf")?
         .ok_or_else(|| anyhow!("metadata.opf not found in HTMLZ"))?
-    )?;
-    let metadata_doc = parse_xml(&metadata)?;
+    ).context("failed to parse metadata.opf in HTMLZ as UTF-8")?;
+    let metadata_doc = parse_xml(&metadata)
+        .context("failed to parse metadata.opf in HTMLZ as XML")?;
+
     let cover_fname = get_cover_filename(&metadata_doc);
     let mut cover = None;
     if let Some(cover_fname) = &cover_fname {
@@ -418,6 +422,7 @@ fn main() -> Result<()> {
             .ok_or_else(|| anyhow!("{cover_fname} not found in HTMLZ"))?
         );
     }
+
     let mut output = Vec::with_capacity(html.len() * 4);
     let zip_arc = Arc::new(Mutex::new(zip));
     let mut rewriter = HtmlRewriter::new(
@@ -427,7 +432,8 @@ fn main() -> Result<()> {
                 element!("body", |el| {
                     let skip_cover = "<a id=\"unbook-skip-cover\"></a>";
                     if let Some(cover_fname) = cover_fname.as_ref() {
-                        let mime_type = get_mime_type(cover_fname)?;
+                        let mime_type = get_mime_type(cover_fname)
+                            .with_context(|| format!("failed to determine mime type for file {cover_fname:?} in HTMLZ"))?;
                         let image_base64 = base64::encode(cover.as_ref().unwrap());
                         let inline_src = format!("data:{mime_type};base64,{image_base64}");
                         let extra_body = formatdoc!("
@@ -444,7 +450,8 @@ fn main() -> Result<()> {
                     let src = el.get_attribute("src").unwrap();
                     let mut zip = zip_arc.lock().unwrap();
                     if let Some(image) = zip.get_content(&src)? {
-                        let mime_type = get_mime_type(&src)?;
+                        let mime_type = get_mime_type(&src)
+                            .with_context(|| format!("failed to determine mime type for file {src:?} in HTMLZ"))?;
                         let image_base64 = base64::encode(image);
                         let inline_src = format!("data:{mime_type};base64,{image_base64}");
                         el.set_attribute("src", &inline_src)?;
@@ -459,7 +466,8 @@ fn main() -> Result<()> {
                     let href = el.get_attribute("href").unwrap();
                     let mut zip = zip_arc.lock().unwrap();
                     if let Some(image) = zip.get_content(&href)? {
-                        let mime_type = get_mime_type(&href)?;
+                        let mime_type = get_mime_type(&href)
+                            .with_context(|| format!("failed to determine mime type for file {href:?} in HTMLZ"))?;
                         let image_base64 = base64::encode(image);
                         let inline_href = format!("data:{mime_type};base64,{image_base64}");
                         el.set_attribute("href", &inline_href)?;        
@@ -481,7 +489,8 @@ fn main() -> Result<()> {
 
     // We're done reading the htmlz at this point
     if !keep_temporary_htmlz {
-        fs::remove_file(&output_htmlz)?;
+        fs::remove_file(&output_htmlz)
+            .with_context(|| format!("failed to remove temporary HTMLZ file at {output_htmlz:?}"))?;
     }
 
     let fro = css::FontReplacementOptions {
@@ -650,10 +659,16 @@ fn main() -> Result<()> {
     };
 
     let mut output_file = if force {
-        fs::File::create(&output_path)?
+        fs::File::create(&output_path)
+            .with_context(|| format!("failed to open output file {output_path:?} for writing"))?
     } else {
+        // Repeat the early check with the same error message
+        if output_path.exists() {
+            bail!("output file {:?} already exists; use unbook -f if you want to overwrite", output_path);
+        }
         // TODO: use fs::File::create_new once stable
-        create_new(&output_path).map_err(|_| anyhow!("{:?} already exists", output_path))?
+        create_new(&output_path)
+            .with_context(|| format!("failed to open output file {output_path:?} for writing"))?
     };
     // Add a doctype because there probably isn't any reason for us to be in quirks mode
     // If you change the header: YOU MUST ALSO UPDATE first_4k.starts_with above
@@ -662,6 +677,25 @@ fn main() -> Result<()> {
     let html_head = b"<html><head>";
     assert!(output.starts_with(html_head));
     output_file.write_all(&output[html_head.len()..])?;
+
+    Ok(())
+}
+
+
+fn main() -> Result<()> {
+    let env_filter = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("warn"))
+        .unwrap();
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(env_filter)
+        .init();
+
+    let command = ConvertCommand::parse();
+    let ConvertCommand { ebook_path, .. } = &command;
+    let ebook_path = ebook_path.clone();
+    convert_file(command)
+        .with_context(|| format!("failed to convert input file {ebook_path:?}"))?;
 
     Ok(())
 }

@@ -1,3 +1,6 @@
 #!/bin/sh
 
 RUSTFLAGS="-Ctarget-feature=+crt-static --remap-path-prefix=C:\\Users\\$USER=" cargo build --release
+cp -a ./target/release/unbook.exe ./
+version=$(./unbook --version | cut -d ' ' -f 2)
+7z a unbook-${version}.zip unbook.exe THIRDPARTY.html LICENSE README.md

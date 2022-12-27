@@ -247,7 +247,7 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // paragraphs is typographically incorrect and low risk to fix, because e.g.
     // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
     let selectors = &ruleset.selectors;
-    let probably_a_paragraph = selectors == ".indent" || selectors == ".noindent" || selectors.contains(".para");
+    let probably_a_paragraph = selectors == ".indent" || selectors == ".noindent" || selectors == ".indent-para" || selectors.contains(".para");
     let css = if probably_a_paragraph {
         static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$");
         let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");

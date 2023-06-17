@@ -19,6 +19,7 @@ use std::panic;
 use mobi::Mobi;
 use font::GenericFontFamily;
 use zip::result::ZipError;
+use base64::{Engine as _, engine::general_purpose};
 
 mod css;
 mod font;
@@ -436,7 +437,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
                     if let Some(cover_fname) = cover_fname.as_ref() {
                         let mime_type = get_mime_type(cover_fname)
                             .with_context(|| format!("failed to determine mime type for file {cover_fname:?} in HTMLZ"))?;
-                        let image_base64 = base64::encode(cover.as_ref().unwrap());
+                        let image_base64 = general_purpose::STANDARD.encode(cover.as_ref().unwrap());
                         let inline_src = format!("data:{mime_type};base64,{image_base64}");
                         let extra_body = formatdoc!("
                             \n<img class=\"unbook-cover\" alt=\"Book cover\" src=\"{inline_src}\" />
@@ -454,7 +455,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
                     if let Some(image) = zip.get_content(&src)? {
                         let mime_type = get_mime_type(&src)
                             .with_context(|| format!("failed to determine mime type for file {src:?} in HTMLZ"))?;
-                        let image_base64 = base64::encode(image);
+                        let image_base64 = general_purpose::STANDARD.encode(image);
                         let inline_src = format!("data:{mime_type};base64,{image_base64}");
                         el.set_attribute("src", &inline_src)?;
                         // Make the HTML source a little easier to read by putting inline images on their own lines
@@ -470,7 +471,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
                     if let Some(image) = zip.get_content(&href)? {
                         let mime_type = get_mime_type(&href)
                             .with_context(|| format!("failed to determine mime type for file {href:?} in HTMLZ"))?;
-                        let image_base64 = base64::encode(image);
+                        let image_base64 = general_purpose::STANDARD.encode(image);
                         let inline_href = format!("data:{mime_type};base64,{image_base64}");
                         el.set_attribute("href", &inline_href)?;        
                     }

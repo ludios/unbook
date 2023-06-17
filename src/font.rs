@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 fn parse_font_family_list(value: &str) -> Vec<String> {
     let value = value.trim();

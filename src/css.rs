@@ -1,9 +1,8 @@
-use std::{collections::{HashMap, HashSet}, borrow::Cow};
-
 use clap::ValueEnum;
 use indoc::formatdoc;
-use regex::Regex;
 use once_cell::sync::Lazy;
+use regex::Regex;
+use std::{collections::{HashMap, HashSet}, borrow::Cow};
 use crate::font::{classify_font_family, GenericFontFamily};
 
 #[derive(ValueEnum, Copy, Clone, Debug)]

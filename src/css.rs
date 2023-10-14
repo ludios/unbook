@@ -200,7 +200,7 @@ pub(crate) fn get_generic_font_family_map(css: &str) -> GenericFamilyMap {
     let mut family_map: HashMap<Option<GenericFontFamily>, HashSet<String>> = HashMap::with_capacity(6);
     for stack in font_stacks {
         let generic_family = classify_font_family(&stack);
-        family_map.entry(generic_family).or_insert_with(HashSet::new).insert(stack);
+        family_map.entry(generic_family).or_default().insert(stack);
     }
     family_map
 }

@@ -18,7 +18,7 @@ lol_html = "1.2"
 base64 = "0.21"
 indoc = "2"
 regex = { version = "1", default-features = false } # We don't much performance or Unicode for CSS adjustments
-roxmltree = "0.18"
+roxmltree = "0.19"
 lazy_static = "1"
 infer = { version = "0.15", default-features = false }
 mobi = "0.8"

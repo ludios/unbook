@@ -50,7 +50,7 @@ struct ConvertCommand {
     output_path: Option<PathBuf>,
 
     /// Remove the ebook extension before appending ".html".
-    /// 
+    ///
     /// This is not the default because it makes it harder to find the original
     /// ebook file when viewing the .html, and because you may have e.g. both .mobi
     /// and .epub with the same name in a directory.
@@ -495,7 +495,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
                         el.set_attribute("src", &inline_src)?;
                         // Make the HTML source a little easier to read by putting inline images on their own lines
                         el.before("<!--\n-->", ContentType::Html);
-                        el.after("<!--\n-->", ContentType::Html);        
+                        el.after("<!--\n-->", ContentType::Html);
                     }
                     Ok(())
                 }),
@@ -508,7 +508,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
                             .with_context(|| format!("failed to determine mime type for file {href:?} in HTMLZ"))?;
                         let image_base64 = general_purpose::STANDARD.encode(image);
                         let inline_href = format!("data:{mime_type};base64,{image_base64}");
-                        el.set_attribute("href", &inline_href)?;        
+                        el.set_attribute("href", &inline_href)?;
                     }
                     Ok(())
                 }),

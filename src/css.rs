@@ -248,7 +248,7 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     let selectors = &ruleset.selectors;
     let probably_a_paragraph = selectors == ".indent" || selectors == ".noindent" || selectors == ".indent-para" || selectors.contains(".para");
     let css = if probably_a_paragraph {
-        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[12]em|[12]px|[12]pt);?$");
+        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[123]em|[123]px|[123]pt);?$");
         let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
         css
     } else {
@@ -256,7 +256,7 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     };
     // The same for margin-top.
     let css = if probably_a_paragraph {
-        static PARA_MARGIN_TOP: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[12]em|[12]px|[12]pt);?$");
+        static PARA_MARGIN_TOP: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[123]em|[123]px|[123]pt);?$");
         let css = PARA_MARGIN_TOP.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
         css
     } else {
@@ -553,6 +553,8 @@ pub(crate) mod tests {
                 margin-bottom: 2px;
                 margin-top: 3px;
                 margin-bottom: 3px;
+                margin-top: 4px;
+                margin-bottom: 4px;
             }
         ");
 
@@ -577,8 +579,10 @@ pub(crate) mod tests {
                 margin-bottom: 0; /* was margin-bottom: 1px; */ /* unbook */
                 margin-top: 0; /* was margin-top: 2px; */ /* unbook */
                 margin-bottom: 0; /* was margin-bottom: 2px; */ /* unbook */
-                margin-top: 3px;
-                margin-bottom: 3px;
+                margin-top: 0; /* was margin-top: 3px; */ /* unbook */
+                margin-bottom: 0; /* was margin-bottom: 3px; */ /* unbook */
+                margin-top: 4px;
+                margin-bottom: 4px;
             }
         ");
 

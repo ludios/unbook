@@ -141,31 +141,31 @@ struct ConvertCommand {
     #[clap(long, default_value = "inline")]
     text_fragments_polyfill: TextFragmentsPolyfill,
 
-    /// Additional entries to add to the Content-Security-Policy default-src
+    /// Space-separated entries to add to Content-Security-Policy default-src
     #[clap(long, default_value = "")]
     csp_default_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy font-src
+    /// Space-separated entries to add to Content-Security-Policy font-src
     #[clap(long, default_value = "")]
     csp_font_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy img-src
+    /// Space-separated entries to add to Content-Security-Policy img-src
     #[clap(long, default_value = "")]
     csp_img_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy style-src
+    /// Space-separated entries to add to Content-Security-Policy style-src
     #[clap(long, default_value = "")]
     csp_style_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy media-src
+    /// Space-separated entries to add to Content-Security-Policy media-src
     #[clap(long, default_value = "")]
     csp_media_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy script-src
+    /// Space-separated entries to add to Content-Security-Policy script-src
     #[clap(long, default_value = "")]
     csp_script_src: String,
 
-    /// Additional entries to add to the Content-Security-Policy object-src
+    /// Space-separated entries to add to Content-Security-Policy object-src
     #[clap(long, default_value = "")]
     csp_object_src: String,
 }

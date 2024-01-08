@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow, bail, Context};
 use base64::{Engine as _, engine::general_purpose};
 use clap::{Parser, ValueEnum};
 use font::GenericFontFamily;
-use indoc::{indoc, formatdoc};
+use indoc::formatdoc;
 use lol_html::{element, HtmlRewriter, Settings, html_content::ContentType};
 use mimalloc::MiMalloc;
 use mobi::Mobi;
@@ -140,6 +140,34 @@ struct ConvertCommand {
     /// of Firefox and Safari < 16.1 users
     #[clap(long, default_value = "inline")]
     text_fragments_polyfill: TextFragmentsPolyfill,
+
+    /// Additional entries to add to the Content-Security-Policy default-src
+    #[clap(long, default_value = "")]
+    csp_default_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy font-src
+    #[clap(long, default_value = "")]
+    csp_font_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy img-src
+    #[clap(long, default_value = "")]
+    csp_img_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy style-src
+    #[clap(long, default_value = "")]
+    csp_style_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy media-src
+    #[clap(long, default_value = "")]
+    csp_media_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy script-src
+    #[clap(long, default_value = "")]
+    csp_script_src: String,
+
+    /// Additional entries to add to the Content-Security-Policy object-src
+    #[clap(long, default_value = "")]
+    csp_object_src: String,
 }
 
 fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
@@ -289,6 +317,13 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
         ebook_convert,
         keep_temporary_htmlz,
         text_fragments_polyfill,
+        csp_default_src,
+        csp_font_src,
+        csp_img_src,
+        csp_style_src,
+        csp_media_src,
+        csp_script_src,
+        csp_object_src,
     } = command;
 
     let output_path = match output_path {
@@ -575,16 +610,16 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
             "),
         };
         // Don't let the book reference any external scripts, images, or other resources
-        let csp = indoc!(r#"
-            <meta http-equiv="Content-Security-Policy" content="
-                default-src 'none';
-                font-src 'self' data:;
-                img-src 'self' data:;
-                style-src 'unsafe-inline';
-                media-src 'self' data:;
-                script-src 'unsafe-inline' data:;
-                object-src 'self' data:;
-            ">"#
+        let csp = formatdoc!("
+            <meta http-equiv=\"Content-Security-Policy\" content=\"
+                default-src 'none' {csp_default_src};
+                font-src 'self' data: {csp_font_src};
+                img-src 'self' data: {csp_img_src};
+                style-src 'unsafe-inline' {csp_style_src};
+                media-src 'self' data: {csp_media_src};
+                script-src 'unsafe-inline' data: {csp_script_src};
+                object-src 'self' data: {csp_object_src};
+            \">"
         );
 
         let empty = &HashSet::new();

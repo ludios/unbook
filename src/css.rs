@@ -246,7 +246,12 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // paragraphs is typographically incorrect and low risk to fix, because e.g.
     // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
     let selectors = &ruleset.selectors;
-    let probably_a_paragraph = selectors == ".indent" || selectors == ".noindent" || selectors == ".indent-para" || selectors.contains(".para");
+    let probably_a_paragraph =
+        selectors == ".indent" ||
+        selectors == ".noindent" ||
+        selectors == ".indent-para" ||
+        selectors.contains(".para") ||
+        selectors.starts_with(".class_indent");
     let css = if probably_a_paragraph {
         static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[123]em|[123]px|[123]pt);?$");
         let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
@@ -556,6 +561,9 @@ pub(crate) mod tests {
                 margin-top: 4px;
                 margin-bottom: 4px;
             }
+            .class_indent1 {
+                margin-top: 0.2em;
+            }
         ");
 
         let output = indoc!("
@@ -583,6 +591,9 @@ pub(crate) mod tests {
                 margin-bottom: 0; /* was margin-bottom: 3px; */ /* unbook */
                 margin-top: 4px;
                 margin-bottom: 4px;
+            }
+            .class_indent1 {
+                margin-top: 0; /* was margin-top: 0.2em; */ /* unbook */
             }
         ");
 

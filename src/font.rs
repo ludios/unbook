@@ -159,6 +159,7 @@ lazy_static! {
             "URW Gothic L",
             "Optima",
             "Gotham",
+            "AtkinsonHyperlegible",
             "Arial Narrow",
             "Roboto",
             "Inter",

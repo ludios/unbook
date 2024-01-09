@@ -1,4 +1,5 @@
 use clap::ValueEnum;
+use csscolorparser::Color;
 use indoc::formatdoc;
 use once_cell::sync::Lazy;
 use regex::{Regex, Captures};
@@ -219,7 +220,7 @@ fn replace_font_stacks<'a>(css: &'a str, stacks: &[&str], replacement: &str) -> 
 }
 
 /// Fix just one declaration block (no selector)
-pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> Ruleset {
+pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, family_map: &GenericFamilyMap, inside_bgcolor: Option<&Color>) -> Ruleset {
     let css = &ruleset.declaration_block;
 
     // Replace line-height overrides so that they are not smaller that our
@@ -263,20 +264,34 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
 
     // Some books have a white or near-white background/background-color
     // that we want to get rid of, as we set our own background-color.
+    let similar_enough_background_threshold = 0.2;
     let background_color_removal_candidate =
         // e.g. Time_to_Use_the_Modern_Digital_Publishing_Format.epub
         selectors == ".calibre" ||
         // e.g. pg6130-images.epub or anything else from Project Gutenberg
         selectors.starts_with(".x-ebookmaker");
-    let css = if background_color_removal_candidate {
+    let css = if background_color_removal_candidate && inside_bgcolor.is_some() {
+        let [our_r, our_g, our_b, _our_a] = inside_bgcolor.unwrap().to_array();
         static BACKGROUND_COLOR: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)(?P<which>background(-color)?):\s*(?P<background_color>[^;]+?);?$");
         let css = BACKGROUND_COLOR.replace_all(&css, |caps: &Captures| {
             let indent = &caps["indent"];
             let which = &caps["which"];
             let background_color = &caps["background_color"];
+            let Ok(parsed) = csscolorparser::parse(background_color) else {
+                // Failed to parse; return the original color instead of modifying it
+                return format!("{indent}{which}: {background_color};");
+            };
+            let [css_r, css_g, css_b, _css_a] = parsed.to_array();
+            if
+                (our_r - css_r).abs() > similar_enough_background_threshold ||
+                (our_g - css_g).abs() > similar_enough_background_threshold ||
+                (our_b - css_b).abs() > similar_enough_background_threshold
+            {
+                // Too different; return the original color instead of modifying it
+                return format!("{indent}{which}: {background_color};");
+            }
             format!("{indent}{which}: inherit; /* was background-color: {background_color}; */ /* unbook */")
         });
-        let css = BACKGROUND_COLOR.replace_all(&css, "${indent}${which}: inherit; /* was background-color: ${background_color}; */ /* unbook */");
         css.to_string()
     } else {
         css.to_string()
@@ -352,8 +367,9 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     Ruleset { selectors: ruleset.selectors.clone(), declaration_block: css.to_string() }
 }
 
-pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap) -> String {
+pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &GenericFamilyMap, inside_bgcolor: &str) -> String {
     let mut out = String::with_capacity(css.len() + 4096);
+    let inside_bgcolor: Option<Color> = csscolorparser::parse(inside_bgcolor).ok();
 
     let rulesets = get_css_rulesets(css);
     for ruleset in rulesets {
@@ -363,7 +379,7 @@ pub(crate) fn fix_css(css: &str, fro: &FontReplacementOptions, family_map: &Gene
             // font apparent.
             out.push_str(&ruleset.to_string());
         } else {
-            let fixed_ruleset = fix_css_ruleset(&ruleset, fro, family_map);
+            let fixed_ruleset = fix_css_ruleset(&ruleset, fro, family_map, inside_bgcolor.as_ref());
             out.push_str(&fixed_ruleset.to_string());
         }
     }
@@ -482,7 +498,7 @@ pub(crate) mod tests {
             }
         ");
 
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     #[test]
@@ -521,7 +537,7 @@ pub(crate) mod tests {
             }
         ");
 
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     #[test]
@@ -544,7 +560,7 @@ pub(crate) mod tests {
             }
         ");
 
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     #[test]
@@ -621,7 +637,7 @@ pub(crate) mod tests {
             }
         ");
 
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     #[test]
@@ -646,7 +662,7 @@ pub(crate) mod tests {
             }
         ");
 
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     fn input_with_one_font_family() -> &'static str {
@@ -693,7 +709,7 @@ pub(crate) mod tests {
     #[test]
     fn test_fix_font_family_never() {
         let input = input_with_one_font_family();
-        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input)), input);
+        assert_eq!(fix_css(input, &dummy_fro(), &get_generic_font_family_map(input), "#e9e9e9"), input);
     }
 
     #[test]
@@ -723,7 +739,7 @@ pub(crate) mod tests {
         let mut fro = dummy_fro();
         for mode in [FontFamilyReplacementMode::if_one, FontFamilyReplacementMode::always] {
             fro.replace_serif_and_sans_serif = mode;
-            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input), "#e9e9e9"), output);
         }
     }
 
@@ -733,7 +749,7 @@ pub(crate) mod tests {
         let mut fro = dummy_fro();
         fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::if_one;
         fro.replace_monospace = FontFamilyReplacementMode::if_one;
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), input);
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input), "#e9e9e9"), input);
     }
 
     #[test]
@@ -764,7 +780,7 @@ pub(crate) mod tests {
         for mode in [FontFamilyReplacementMode::if_one, FontFamilyReplacementMode::always] {
             fro.replace_serif_and_sans_serif = mode;
             fro.replace_monospace = mode;
-            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+            assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input), "#e9e9e9"), output);
         }
     }
 
@@ -789,7 +805,7 @@ pub(crate) mod tests {
         let mut fro = dummy_fro();
         fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::always;
         fro.replace_monospace = FontFamilyReplacementMode::always;
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 
     #[test]
@@ -797,9 +813,11 @@ pub(crate) mod tests {
         let input = indoc!("
             .something {
                 background-color: #fff;
+                background-color: black;
             }
             .calibre {
                 background-color: #000;
+                background-color: black;
                 background-color: #fff;
                 background-color: #eee;
                 background-color: #ffffff;
@@ -808,6 +826,7 @@ pub(crate) mod tests {
             }
             .x-ebookmaker {
                 background-color: #000;
+                background-color: black;
                 background-color: #fff;
                 background-color: #eee;
                 background-color: #ffffff;
@@ -819,9 +838,11 @@ pub(crate) mod tests {
         let output = indoc!("
             .something {
                 background-color: #fff;
+                background-color: black;
             }
             .calibre {
-                background-color: inherit; /* was background-color: #000; */ /* unbook */
+                background-color: #000;
+                background-color: black;
                 background-color: inherit; /* was background-color: #fff; */ /* unbook */
                 background-color: inherit; /* was background-color: #eee; */ /* unbook */
                 background-color: inherit; /* was background-color: #ffffff; */ /* unbook */
@@ -829,7 +850,8 @@ pub(crate) mod tests {
                 background-color: inherit; /* was background-color: rgb(255, 255, 255); */ /* unbook */
             }
             .x-ebookmaker {
-                background-color: inherit; /* was background-color: #000; */ /* unbook */
+                background-color: #000;
+                background-color: black;
                 background-color: inherit; /* was background-color: #fff; */ /* unbook */
                 background-color: inherit; /* was background-color: #eee; */ /* unbook */
                 background-color: inherit; /* was background-color: #ffffff; */ /* unbook */
@@ -839,6 +861,6 @@ pub(crate) mod tests {
         ");
 
         let fro = dummy_fro();
-        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input), "#e9e9e9"), output);
     }
 }

@@ -23,6 +23,7 @@ lazy_static = "1"
 infer = { version = "0.15", default-features = false }
 mobi = "0.8"
 once_cell = "1"
+csscolorparser = "0.6"
 
 [profile.dev]
 # Reduce debug rebuild time

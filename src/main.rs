@@ -544,7 +544,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
     // a list of files which were not read from the ZIP archive.
     let family_map = css::get_generic_font_family_map(&calibre_css);
     let extra_head = {
-        let fixed_css = css::fix_css(&calibre_css, &fro, &family_map);
+        let fixed_css = css::fix_css(&calibre_css, &fro, &family_map, &inside_bgcolor);
         let ebook_basename =
             escape_html_comment_close(
                 &ebook_path.file_name().unwrap().to_string_lossy());

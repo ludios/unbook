@@ -261,7 +261,7 @@ pub(crate) fn fix_css_ruleset(
         selectors.contains(".para") ||
         selectors.starts_with(".class_indent");
     let css = if probably_a_paragraph {
-        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)(?P<which>margin-(top|bottom)):\s*(?P<margin>0\.[123][\d]?em|[123](\.\d+)?px|[123](\.\d+)?pt);?$");
+        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)(?P<which>margin-(top|bottom)):\s*(?P<margin>0\.[123][\d]?em|[1234](\.\d+)?px|[1234](\.\d+)?pt);?$");
         let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}${which}: 0; /* was ${which}: ${margin}; */ /* unbook */");
         css
     } else {
@@ -602,10 +602,10 @@ pub(crate) mod tests {
                 margin-bottom: 2px;
                 margin-top: 3px;
                 margin-bottom: 3px;
-                margin-top: 3.99px;
-                margin-bottom: 3.99px;
-                margin-top: 4px;
-                margin-bottom: 4px;
+                margin-top: 4.99px;
+                margin-bottom: 4.99px;
+                margin-top: 5px;
+                margin-bottom: 5px;
             }
             .class_indent1 {
                 margin-top: 0.2em;
@@ -638,10 +638,10 @@ pub(crate) mod tests {
                 margin-bottom: 0; /* was margin-bottom: 2px; */ /* unbook */
                 margin-top: 0; /* was margin-top: 3px; */ /* unbook */
                 margin-bottom: 0; /* was margin-bottom: 3px; */ /* unbook */
-                margin-top: 0; /* was margin-top: 3.99px; */ /* unbook */
-                margin-bottom: 0; /* was margin-bottom: 3.99px; */ /* unbook */
-                margin-top: 4px;
-                margin-bottom: 4px;
+                margin-top: 0; /* was margin-top: 4.99px; */ /* unbook */
+                margin-bottom: 0; /* was margin-bottom: 4.99px; */ /* unbook */
+                margin-top: 5px;
+                margin-bottom: 5px;
             }
             .class_indent1 {
                 margin-top: 0; /* was margin-top: 0.2em; */ /* unbook */

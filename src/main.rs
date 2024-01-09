@@ -124,6 +124,15 @@ struct ConvertCommand {
     #[clap(long, default_value = "#e9e9e9")]
     inside_bgcolor: String,
 
+    /// ebooks are sometimes wrapped in an element with a white or near-white background
+    /// color that effectively overrides unbook's inside_bgcolor. This similarity threshold
+    /// is used when considering whether to replace these background colors: if R, G, and B
+    /// of inside_bgcolor are all within R, G, and B of inside_bgcolor_similarity_threshold,
+    /// the unwanted background-color is removed. Set to 0 to never replace, or 1 to always
+    /// replace.
+    #[clap(long, default_value = "0.2")]
+    inside_bgcolor_similarity_threshold: f64,
+
     /// Additional HTML to append to <head> in the output HTML
     #[clap(long, default_value = "")]
     append_head: String,
@@ -313,6 +322,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
         inside_margin_when_narrow,
         outside_bgcolor,
         inside_bgcolor,
+        inside_bgcolor_similarity_threshold,
         append_head,
         ebook_convert,
         keep_temporary_htmlz,
@@ -544,7 +554,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
     // a list of files which were not read from the ZIP archive.
     let family_map = css::get_generic_font_family_map(&calibre_css);
     let extra_head = {
-        let fixed_css = css::fix_css(&calibre_css, &fro, &family_map, &inside_bgcolor);
+        let fixed_css = css::fix_css(&calibre_css, &fro, &family_map, &inside_bgcolor, inside_bgcolor_similarity_threshold);
         let ebook_basename =
             escape_html_comment_close(
                 &ebook_path.file_name().unwrap().to_string_lossy());

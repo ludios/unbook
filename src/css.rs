@@ -1,7 +1,7 @@
 use clap::ValueEnum;
 use indoc::formatdoc;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Regex, Captures};
 use std::{collections::{HashMap, HashSet}, borrow::Cow};
 use crate::font::{classify_font_family, GenericFontFamily};
 
@@ -269,11 +269,14 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
         // e.g. pg6130-images.epub or anything else from Project Gutenberg
         selectors.starts_with(".x-ebookmaker");
     let css = if background_color_removal_candidate {
-        static BACKGROUND_COLOR: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)background-color?:\s*(?P<background_color>[^;]+?);?$");
-        let css = BACKGROUND_COLOR.replace_all(&css, "${indent}background-color: inherit; /* was background-color: ${background_color}; */ /* unbook */");
-
-        static BACKGROUND: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)background?:\s*(?P<background>[^;]+?);?$");
-        let css = BACKGROUND.replace_all(&css, "${indent}background: inherit; /* was background: ${background}; */ /* unbook */");
+        static BACKGROUND_COLOR: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)(?P<which>background(-color)?):\s*(?P<background_color>[^;]+?);?$");
+        let css = BACKGROUND_COLOR.replace_all(&css, |caps: &Captures| {
+            let indent = &caps["indent"];
+            let which = &caps["which"];
+            let background_color = &caps["background_color"];
+            format!("{indent}{which}: inherit; /* was background-color: {background_color}; */ /* unbook */")
+        });
+        let css = BACKGROUND_COLOR.replace_all(&css, "${indent}${which}: inherit; /* was background-color: ${background_color}; */ /* unbook */");
         css.to_string()
     } else {
         css.to_string()

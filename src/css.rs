@@ -261,6 +261,24 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
         css
     };
 
+    // Some books have a white or near-white background/background-color
+    // that we want to get rid of, as we set our own background-color.
+    let background_color_removal_candidate =
+        // e.g. Time_to_Use_the_Modern_Digital_Publishing_Format.epub
+        selectors == ".calibre" ||
+        // e.g. pg6130-images.epub or anything else from Project Gutenberg
+        selectors.starts_with(".x-ebookmaker");
+    let css = if background_color_removal_candidate {
+        static BACKGROUND_COLOR: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)background-color?:\s*(?P<background_color>[^;]+?);?$");
+        let css = BACKGROUND_COLOR.replace_all(&css, "${indent}background-color: inherit; /* was background-color: ${background_color}; */ /* unbook */");
+
+        static BACKGROUND: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)background?:\s*(?P<background>[^;]+?);?$");
+        let css = BACKGROUND.replace_all(&css, "${indent}background: inherit; /* was background: ${background}; */ /* unbook */");
+        css.to_string()
+    } else {
+        css.to_string()
+    };
+
     // Some books have <sup>-like citations except they're not a <sup> tag; detect
     // them by their `vertical-align: super` and apply the same fix we have for <sup>
     static VERTICAL_ALIGN_SUPER: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)vertical-align:\s*super;?$");
@@ -768,6 +786,56 @@ pub(crate) mod tests {
         let mut fro = dummy_fro();
         fro.replace_serif_and_sans_serif = FontFamilyReplacementMode::always;
         fro.replace_monospace = FontFamilyReplacementMode::always;
+        assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
+    }
+
+    #[test]
+    fn test_fix_background_color() {
+        let input = indoc!("
+            .something {
+                background-color: #fff;
+            }
+            .calibre {
+                background-color: #000;
+                background-color: #fff;
+                background-color: #eee;
+                background-color: #ffffff;
+                background-color: white;
+                background-color: rgb(255, 255, 255);
+            }
+            .x-ebookmaker {
+                background-color: #000;
+                background-color: #fff;
+                background-color: #eee;
+                background-color: #ffffff;
+                background-color: white;
+                background-color: rgb(255, 255, 255);
+            }
+        ");
+
+        let output = indoc!("
+            .something {
+                background-color: #fff;
+            }
+            .calibre {
+                background-color: inherit; /* was background-color: #000; */ /* unbook */
+                background-color: inherit; /* was background-color: #fff; */ /* unbook */
+                background-color: inherit; /* was background-color: #eee; */ /* unbook */
+                background-color: inherit; /* was background-color: #ffffff; */ /* unbook */
+                background-color: inherit; /* was background-color: white; */ /* unbook */
+                background-color: inherit; /* was background-color: rgb(255, 255, 255); */ /* unbook */
+            }
+            .x-ebookmaker {
+                background-color: inherit; /* was background-color: #000; */ /* unbook */
+                background-color: inherit; /* was background-color: #fff; */ /* unbook */
+                background-color: inherit; /* was background-color: #eee; */ /* unbook */
+                background-color: inherit; /* was background-color: #ffffff; */ /* unbook */
+                background-color: inherit; /* was background-color: white; */ /* unbook */
+                background-color: inherit; /* was background-color: rgb(255, 255, 255); */ /* unbook */
+            }
+        ");
+
+        let fro = dummy_fro();
         assert_eq!(fix_css(input, &fro, &get_generic_font_family_map(input)), output);
     }
 }

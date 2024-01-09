@@ -241,10 +241,10 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     static TEXT_ALIGN_JUSTIFY: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)text-align:\s*justify;?$");
     let css = TEXT_ALIGN_JUSTIFY.replace_all(&css, "${indent}/* was text-align: justify; */ /* unbook */");
 
-    // Some books have a margin-bottom: 0.2em or similar on paragraphs, and these
-    // paragraphs tend to have "para*" classes. Having small extra margins between
-    // paragraphs is typographically incorrect and low risk to fix, because e.g.
-    // 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
+    // Some books have a margin-(top|bottom): 0.2em or similar on paragraphs, and
+    // these paragraphs tend to have "para*" classes. Having small extra margins
+    // between paragraphs is typographically incorrect and low risk to fix, because
+    // e.g. 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
     let selectors = &ruleset.selectors;
     let probably_a_paragraph =
         selectors == ".indent" ||
@@ -253,16 +253,8 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
         selectors.contains(".para") ||
         selectors.starts_with(".class_indent");
     let css = if probably_a_paragraph {
-        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-bottom:\s*(?P<margin_bottom>0\.[123]em|[123]px|[123]pt);?$");
-        let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}margin-bottom: 0; /* was margin-bottom: ${margin_bottom}; */ /* unbook */");
-        css
-    } else {
-        css
-    };
-    // The same for margin-top.
-    let css = if probably_a_paragraph {
-        static PARA_MARGIN_TOP: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)margin-top:\s*(?P<margin_top>0\.[123]em|[123]px|[123]pt);?$");
-        let css = PARA_MARGIN_TOP.replace_all(&css, "${indent}margin-top: 0; /* was margin-top: ${margin_top}; */ /* unbook */");
+        static PARA_MARGIN_BOTTOM: &Lazy<Regex> = lazy_regex!(r"(?m)^(?P<indent>\s*)(?P<which>margin-(top|bottom)):\s*(?P<margin>0\.[123][\d]?em|[123](\.\d+)?px|[123](\.\d+)?pt);?$");
+        let css = PARA_MARGIN_BOTTOM.replace_all(&css, "${indent}${which}: 0; /* was ${which}: ${margin}; */ /* unbook */");
         css
     } else {
         css
@@ -542,6 +534,9 @@ pub(crate) mod tests {
             .para-p2 {
                 margin-bottom: 0.2em
             }
+            .para-p3 {
+                margin-bottom: 0.23em
+            }
             .something {
                 margin-bottom: 0.2em;
             }
@@ -558,6 +553,8 @@ pub(crate) mod tests {
                 margin-bottom: 2px;
                 margin-top: 3px;
                 margin-bottom: 3px;
+                margin-top: 3.99px;
+                margin-bottom: 3.99px;
                 margin-top: 4px;
                 margin-bottom: 4px;
             }
@@ -572,6 +569,9 @@ pub(crate) mod tests {
             }
             .para-p2 {
                 margin-bottom: 0; /* was margin-bottom: 0.2em; */ /* unbook */
+            }
+            .para-p3 {
+                margin-bottom: 0; /* was margin-bottom: 0.23em; */ /* unbook */
             }
             .something {
                 margin-bottom: 0.2em;
@@ -589,6 +589,8 @@ pub(crate) mod tests {
                 margin-bottom: 0; /* was margin-bottom: 2px; */ /* unbook */
                 margin-top: 0; /* was margin-top: 3px; */ /* unbook */
                 margin-bottom: 0; /* was margin-bottom: 3px; */ /* unbook */
+                margin-top: 0; /* was margin-top: 3.99px; */ /* unbook */
+                margin-bottom: 0; /* was margin-bottom: 3.99px; */ /* unbook */
                 margin-top: 4px;
                 margin-bottom: 4px;
             }

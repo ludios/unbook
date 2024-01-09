@@ -247,6 +247,7 @@ pub(crate) fn fix_css_ruleset(ruleset: &Ruleset, fro: &FontReplacementOptions, f
     // e.g. 0.2em is close enough to 0 that we're unlikely to cause semantic damage.
     let selectors = &ruleset.selectors;
     let probably_a_paragraph =
+        (selectors.starts_with(".calibre") && css.contains("text-indent:")) ||
         selectors == ".indent" ||
         selectors == ".noindent" ||
         selectors == ".indent-para" ||

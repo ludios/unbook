@@ -85,6 +85,7 @@ pub(crate) fn top_css(
     inside_margin_when_narrow: &str,
     outside_bgcolor: &str,
     inside_bgcolor: &str,
+    fgcolor: &str,
 ) -> String {
     let FontReplacementOptions {
         min_font_size,
@@ -106,6 +107,7 @@ pub(crate) fn top_css(
             --inside-margin-when-narrow: {inside_margin_when_narrow};
             --outside-bgcolor: {outside_bgcolor};
             --inside-bgcolor: {inside_bgcolor};
+            --fgcolor: {fgcolor};
         }}
 
         html {{
@@ -114,6 +116,7 @@ pub(crate) fn top_css(
 
         body {{
             background-color: var(--inside-bgcolor);
+            color: var(--fgcolor);
             max-width: {max_width};
             margin: 0 auto;
             padding: var(--inside-margin-when-narrow);

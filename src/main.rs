@@ -119,7 +119,7 @@ struct ConvertCommand {
     #[clap(long, default_value = "#888")]
     outside_bgcolor: String,
 
-    /// Background color (any CSS color) to use for the text of the book, i.e. the <body>.
+    /// Background color (any CSS color) to use behind the text of the book, i.e. the <body>.
     /// Use "unset" for no color.
     #[clap(long, default_value = "#e9e9e9")]
     inside_bgcolor: String,
@@ -132,6 +132,10 @@ struct ConvertCommand {
     /// replace.
     #[clap(long, default_value = "0.2")]
     inside_bgcolor_similarity_threshold: f64,
+
+    /// Foreground color (any CSS color) to use for the text of the book.
+    #[clap(long, default_value = "#000")]
+    fgcolor: String,
 
     /// Additional HTML to append to <head> in the output HTML
     #[clap(long, default_value = "")]
@@ -323,6 +327,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
         outside_bgcolor,
         inside_bgcolor,
         inside_bgcolor_similarity_threshold,
+        fgcolor,
         append_head,
         ebook_convert,
         keep_temporary_htmlz,
@@ -582,6 +587,7 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
             &inside_margin_when_narrow,
             &outside_bgcolor,
             &inside_bgcolor,
+            &fgcolor,
         );
         let (unread_files_count, unread_files_text) = {
             let zip = zip_arc.lock().unwrap();

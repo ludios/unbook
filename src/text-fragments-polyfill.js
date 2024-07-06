@@ -6,7 +6,7 @@ if (!('fragmentDirective' in Location.prototype) && !('fragmentDirective' in doc
 // This polyfill is used to navigate to #:~:text= fragments in browsers that do not yet natively support them:
 // https://caniuse.com/url-scroll-to-text-fragment
 //
-// Below is a copy of https://unpkg.com/text-fragments-polyfill@5.5.0/dist/text-fragments.js
+// Below is a copy of https://unpkg.com/text-fragments-polyfill@5.7.0/dist/text-fragments.js
 // with a copyright header from https://github.com/GoogleChromeLabs/text-fragments-polyfill/blob/main/src/text-fragments.js
 
 /**

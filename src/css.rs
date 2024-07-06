@@ -145,7 +145,7 @@ pub(crate) fn top_css(
 
         /* Specified because Firefox doesn't have a proper user agent stylesheet
          * and may use incorrect colors from the system theme */
-        a {{
+        a:link {{
             color: var(--link-color-normal);
         }}
         a:visited {{

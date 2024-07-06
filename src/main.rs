@@ -137,6 +137,18 @@ struct ConvertCommand {
     #[clap(long, default_value = "#000")]
     fgcolor: String,
 
+    /// Color (any CSS color) to use for normal (unvisited) links.
+    #[clap(long, default_value = "#00e")]
+    link_color_normal: String,
+
+    /// Color (any CSS color) to use for visited links.
+    #[clap(long, default_value = "#551a8b")]
+    link_color_visited: String,
+
+    /// Color (any CSS color) to use for active (being clicked) links.
+    #[clap(long, default_value = "#f00")]
+    link_color_active: String,
+
     /// Additional HTML to append to <head> in the output HTML
     #[clap(long, default_value = "")]
     append_head: String,
@@ -328,6 +340,9 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
         inside_bgcolor,
         inside_bgcolor_similarity_threshold,
         fgcolor,
+        link_color_normal,
+        link_color_visited,
+        link_color_active,
         append_head,
         ebook_convert,
         keep_temporary_htmlz,
@@ -588,6 +603,9 @@ fn convert_file(command: ConvertCommand) -> Result<()> {
             &outside_bgcolor,
             &inside_bgcolor,
             &fgcolor,
+            &link_color_normal,
+            &link_color_visited,
+            &link_color_active,
         );
         let (unread_files_count, unread_files_text) = {
             let zip = zip_arc.lock().unwrap();

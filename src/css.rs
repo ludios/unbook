@@ -86,6 +86,9 @@ pub(crate) fn top_css(
     outside_bgcolor: &str,
     inside_bgcolor: &str,
     fgcolor: &str,
+    link_color_normal: &str,
+    link_color_visited: &str,
+    link_color_active: &str,
 ) -> String {
     let FontReplacementOptions {
         min_font_size,
@@ -108,6 +111,9 @@ pub(crate) fn top_css(
             --outside-bgcolor: {outside_bgcolor};
             --inside-bgcolor: {inside_bgcolor};
             --fgcolor: {fgcolor};
+            --link-color-normal: {link_color_normal};
+            --link-color-visited: {link_color_visited};
+            --link-color-active: {link_color_active};
         }}
 
         html {{
@@ -135,6 +141,18 @@ pub(crate) fn top_css(
             /* Without word-break: break-word, iOS Safari 16.1 lets
              * very long words e.g. URLs widen the page */
             word-break: break-word;
+        }}
+
+        /* Specified because Firefox doesn't have a proper user agent stylesheet
+         * and may use incorrect colors from the system theme */
+        a {{
+            color: var(--link-color-normal);
+        }}
+        a:visited {{
+            color: var(--link-color-visited);
+        }}
+        a:active {{
+            color: var(--link-color-active);
         }}
 
         @media only screen and (min-width: calc({inside_margin_when_narrow} + {max_width} + {inside_margin_when_narrow})) {{

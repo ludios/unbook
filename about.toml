@@ -5,4 +5,6 @@ accepted = [
     "MPL-2.0",
     "BSD-3-Clause",
     "Unicode-DFS-2016",
+    # not Business but Boost (on https://github.com/EVaillant/lockfree-object-pool)
+    "BSL-1.0",
 ]
